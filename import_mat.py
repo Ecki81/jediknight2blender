@@ -36,15 +36,19 @@ def import_mat(matfile, cmpfile):
     #unpack("L", mat[108:112])[0]   #Longint (0xBFF78482)
     CurrentTXNum = unpack("L", mat[112:116])[0]   #CurrentTXNum
 
-    sizeX = unpack("L", mat[116:120])[0]   #SizeX
-    sizeY = unpack("L", mat[120:124])[0]   #SizeY
+    size_offset = 0
+    pixel_offset = 0
+    
+    if NumOfTextures > 1:
+        size_offset = 10*4*(NumOfTextures-1)
 
-    #unpack("L", mat[136:140])[0]  #NumMipMaps
+    sizeX = unpack("L", mat[116+size_offset:120+size_offset])[0]
+    sizeY = unpack("L", mat[120+size_offset:124+size_offset])[0]
+    
+    if NumOfTextures > 1:
+        pixel_offset = size_offset #-sizeX
 
-
-
-    ###
-
+    numMipMaps = unpack("L", mat[136:140])[0]  #NumMipMaps
 
 
     size = sizeX, sizeY
@@ -64,8 +68,8 @@ def import_mat(matfile, cmpfile):
         for x in range(size[0]):
             for y in range(size[1]):
                 # assign RGBA to something useful
-    # 140: start of image array    |  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
-                cmp_index = mat[140+(size[0]*size[1])-((y+1)*size[0]-x)]
+    # 140: start of image array                 |  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
+                cmp_index = mat[140+pixel_offset+(size[0]*size[1])-((y+1)*size[0]-x)]
                 r = cmp[64+(cmp_index*3)]/255
                 g = cmp[65+(cmp_index*3)]/255
                 b = cmp[66+(cmp_index*3)]/255
