@@ -70,10 +70,11 @@ def import_mat(matfile, cmpfile):
         for x in range(size[0]):
             for y in range(size[1]):
                 # assign RGBA to something useful
-                imageidx = mat[-size[0]-y*size[0]+x]     # imageidx : 
-                r = cmp[64+(imageidx*3)]/255
-                g = cmp[65+(imageidx*3)]/255
-                b = cmp[66+(imageidx*3)]/255
+    # 140: start of image array    |  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
+                cmp_index = mat[140+(size[0]*size[1])-((y+1)*size[0]-x)]
+                r = cmp[64+(cmp_index*3)]/255
+                g = cmp[65+(cmp_index*3)]/255
+                b = cmp[66+(cmp_index*3)]/255
                 a = 1.0
                 pixels[(y * size[0]) + x] = [r, g, b, a]
 
@@ -117,7 +118,10 @@ def import_mat(matfile, cmpfile):
         bsdf.inputs[5].default_value = 0.0      # Specular
         bsdf.inputs[7].default_value = 1.0      # Roughness
         colorNode = mat.node_tree.nodes.new('ShaderNodeRGB')
-        colorNode.outputs[0].default_value = (0.3,0.2,0.3,1)
+        r = cmp[64+(colornum*3)]/255
+        g = cmp[65+(colornum*3)]/255
+        b = cmp[66+(colornum*3)]/255
+        colorNode.outputs[0].default_value = (r,g,b,1)
         colorNode.location = -400,250
         mat.node_tree.links.new(bsdf.inputs['Base Color'], colorNode.outputs['Color'])
     
