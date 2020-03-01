@@ -7,14 +7,8 @@ def import_mat(matfile, cmpfile):
     '''
     reads an image from a JK mat file and its corresponding cmp file and returns a material with diffuse map
     '''
-    #filename="C:/Program Files (x86)/GOG Galaxy/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2/3do/mat/tiebpit.mat"
-    #imagefile="D:/GalaxyClient/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2/mat/" + matfile
-    # imagefile="D:/GalaxyClient/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2/3do/mat/" + matfile
-    # palettefile="D:/GalaxyClient/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2/misc/cmp/" + cmpfile                       # @home dir
-    # palettefile="C:/Program Files (x86)/GOG Galaxy/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2/misc/cmp/" + cmpfile       # @work dir
-    palettefile=cmpfile       # @work dir
 
-
+    palettefile=cmpfile
     imagefile = matfile
 
     f=open(palettefile,'rb') # open file for reading
