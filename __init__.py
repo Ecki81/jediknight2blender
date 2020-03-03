@@ -306,6 +306,7 @@ def read_jkl_data(context, filename, importThings, importMats):
     
     if importMats:
         for material in mat_list:
+            testmat = Mat(thingmatpath / material, cmppath / colormap)
             try:
                 Mat.importMat(thingmatpath / material, cmppath / colormap)
             except:
@@ -338,6 +339,7 @@ def read_jkl_data(context, filename, importThings, importMats):
         
         #                          num   template  name      x              y             z             pitch         yaw           roll         sector            thingflag
         thingsList = []
+        things_names = {}
         thingsEx = re.compile("(\d+)\:\s(\S+)\s+(\S+)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(\d+)")
         for line in lines:
             match = thingsEx.search(line)
@@ -370,12 +372,19 @@ def read_jkl_data(context, filename, importThings, importMats):
         
         for mesh in thingsList:
             try:
-                Thing.importThing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]))
+                thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]))
+                thing.import_Thing()
+                things_names[mesh[0][:-4]] = thing.name
             except:
                 pass
                 # print("couldn't import mesh " + mesh[0])
+
+        print(things_names)
+        
     else:
         print("thing parser skipped")
+
+    
 
 
     # create the mesh ##################################################

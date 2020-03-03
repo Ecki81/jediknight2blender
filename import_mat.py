@@ -126,5 +126,15 @@ def import_mat(matfile, cmpfile):
 
 
 class Mat:
-     def importMat(matfile, cmpfile):
-         import_mat(matfile, cmpfile)
+    def __init__(self, mat, cmp):
+        '''
+        initializes a material, takes material file name and palette file name
+        '''
+        self.mat = mat
+        self.cmp = cmp
+
+    def importMat(matfile, cmpfile):
+        import_mat(matfile, cmpfile)
+
+    def printMat(self):
+        print(self.mat, self.cmp)
