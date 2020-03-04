@@ -374,12 +374,10 @@ def read_jkl_data(context, filename, importThings, importMats):
             try:
                 thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]))
                 thing.import_Thing()
-                things_names[mesh[0][:-4]] = thing.name
+                things_names[mesh[0][:-4]] = thing.name # fill dictionary with object file names and its corresponding JK ingame names
             except:
                 pass
                 # print("couldn't import mesh " + mesh[0])
-
-        print(things_names)
         
     else:
         print("thing parser skipped")
