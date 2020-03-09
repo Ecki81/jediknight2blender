@@ -73,7 +73,9 @@ def import_mat(matfile, cmpfile):
                 r = cmp[64+(cmp_index*3)]/255
                 g = cmp[65+(cmp_index*3)]/255
                 b = cmp[66+(cmp_index*3)]/255
-                a = 1.0
+                table = 256*63
+                a = cmp[832+table+cmp_index]/64           # 
+                # a = 1.0
                 pixels[(y * size[0]) + x] = [r, g, b, a]
 
 
