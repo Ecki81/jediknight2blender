@@ -73,7 +73,7 @@ def import_mat(matfile, cmpfile):
                 r = cmp[64+(cmp_index*3)]/255
                 g = cmp[65+(cmp_index*3)]/255
                 b = cmp[66+(cmp_index*3)]/255
-                table = 256*63
+                table = 256*0                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
                 a = cmp[832+table+cmp_index]/64           # 
                 # a = 1.0
                 pixels[(y * size[0]) + x] = [r, g, b, a]
@@ -105,6 +105,7 @@ def import_mat(matfile, cmpfile):
         texImage.image = image
         texImage.location = -400,250
         mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+        mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
         
     else:
         
@@ -134,9 +135,12 @@ class Mat:
         '''
         self.mat = mat
         self.cmp = cmp
+        self.transp = False
+        self.alpha = False
+        self.anim = False
+
+    def __str__(self):
+        print(self.mat, self.cmp)
 
     def importMat(matfile, cmpfile):
         import_mat(matfile, cmpfile)
-
-    def printMat(self):
-        print(self.mat, self.cmp)

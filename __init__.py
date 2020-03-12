@@ -198,16 +198,21 @@ def read_jkl_data(context, filename, importThings, importMats):
     i=0
     while i < int(surfaceCount):
         surfLine=re.split("\s+", lines[i+scPos+1],)
-        nvert=int(surfLine[9])                          # count of vertexes needed for surfaces (nverts)
-        
         matId = int(surfLine[1])
-        geomode = int(surfLine[4])                        # 0 = don't draw, 4 = textured (else)
         surfflag = int(surfLine[2], base=16)
+        faceflag = int(surfLine[3], base=16)
+        geomode = int(surfLine[4])                        # 0 = don't draw, 4 = textured (else)
+        light = int(surfLine[5])
+        tex = int(surfLine[6])
+        adjoin = int(surfLine[7])
+        extralight = float(surfLine[8])
+        nvert=int(surfLine[9])                          # count of vertexes needed for surfaces (nverts)
         sky = 0x200
         sky2 = 0x400
         skyflag=(surfflag & sky)
         sky2flag=(surfflag & sky2)
         #scrollflag=(surfflag & 0x800)
+        # if adjoin + material, then probably transparent!
 
 		
         j=0
@@ -435,7 +440,7 @@ def read_jkl_data(context, filename, importThings, importMats):
                         texture_size = bpy.data.images[material_name].size
             
             else:
-                polygon.material_index = len(me.materials)                           # apply last material in material_index (__portal) to portals
+                polygon.material_index = len(me.materials)-1                           # apply last material in material_index (__portal) to portals
             
             tiling=mat_tiling_list[material_indices[isrf]]
 
