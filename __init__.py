@@ -189,9 +189,13 @@ def read_jkl_data(context, filename, importThings, importMats):
 
     # read in surfaces ################################################
 
-    surf_array = []
-    uv_indices = []
+    surf_list = []                                      # world VERTICES
     surf_vertices = []
+
+    surf_intensities = []
+    surf_intensities_list = []
+
+    uv_indices = []
     uv_index_list = []
     material_indices = []
 
@@ -220,14 +224,19 @@ def read_jkl_data(context, filename, importThings, importMats):
             v_index  = re.split(",",surfLine[j+10])
             surf_vertices.append(int(v_index[0]))                       
             uv_index_list.append(int(v_index[1]))
+            surf_intensities.append(float(surfLine[10+nvert+j]))
             j+=1
-        surf_array.append(surf_vertices)
+        surf_list.append(surf_vertices)
         uv_indices.append(uv_index_list)
+        surf_intensities_list.append(surf_intensities)
         material_indices.append(matId)
         surf_vertices = []
         uv_index_list = []
+        surf_intensities = []
         i+=1
         
+        print(surf_intensities_list)
+
         # else:
         #     # material_indices.append(matId)            # material id for skipped faces (sky or portals). necessary?
         #     i+=1
@@ -416,11 +425,11 @@ def read_jkl_data(context, filename, importThings, importMats):
         me.uv_layers.new(name='UVMap')
         uvMap = me.uv_layers['UVMap']
 
-
-
+        # add vertex color layer
+        vcol = me.vertex_colors.new(name='Intensities')
 
         # assign every needed material to faces
-        for isrf, surface in enumerate(surf_array):
+        for isrf, surface in enumerate(surf_list):
             polygon = me.polygons[isrf]                                     # assign face from 'world surfaces' list
 
             texture_size = (16, 16)
@@ -451,6 +460,11 @@ def read_jkl_data(context, filename, importThings, importMats):
                 x_tile = tiling[0]                                                  # what's that for? multiplication for size? addition for translation?
                 y_tile = tiling[1]
                 uvMap.data[polygon.loop_indices[jsrf]].uv = (u, v)
+                r=0.9
+                g=0.9
+                b=0.9
+                color = (r, g, b, 1.0)
+                vcol.data[polygon.loop_indices[jsrf]].color = color
 
         # add uv data
         
@@ -460,7 +474,7 @@ def read_jkl_data(context, filename, importThings, importMats):
 
     ######################################################################
 
-    create_Mesh(vertArray, surf_array)
+    create_Mesh(vertArray, surf_list)
     print("created level " + name)
 
 

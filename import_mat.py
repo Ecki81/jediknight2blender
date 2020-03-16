@@ -100,11 +100,23 @@ def import_mat(matfile, cmpfile):
         bsdf.inputs[7].default_value = 1.0      # Roughness
         texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
         
+        vertexColor = mat.node_tree.nodes.new('ShaderNodeAttribute')
+        vertexColor.attribute_name = 'Intensities'
+        vertexColor.location = -500, 400
+
+        mixColor = mat.node_tree.nodes.new('ShaderNodeMixRGB')
+        mixColor.blend_type = 'MULTIPLY'
+        mixColor.inputs[0].default_value = 1
+        mixColor.location = -250, 300
+
         # assign texture
         
         texImage.image = image
-        texImage.location = -400,250
-        mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
+        texImage.location = -600,250
+        mat.node_tree.links.new(bsdf.inputs['Base Color'], mixColor.outputs['Color'])
+        mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
+        mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
+
         mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
         
     else:
