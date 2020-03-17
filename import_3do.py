@@ -316,6 +316,9 @@ class Thing:
             ob = bpy.data.objects.new(self.name, me)
             ob.show_name = False
 
+            # add vertex color layer
+            vcol = me.vertex_colors.new(name='Intensities')
+
             # Add materials to meshes
             for material in matList:
                 try:
@@ -327,8 +330,9 @@ class Thing:
             # offset has to be applied to root object
             ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)     # wrong! translation has to be relative to parent object. this only works in hierarchy with depth of 1
 
-            ob.rotation_euler.rotate_axis("X", radians(pitch + self.pitchOffs))              # Correct order of local rotation axes (pitch, yaw, roll)
-            ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))
+            
+            ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
+            ob.rotation_euler.rotate_axis("X", radians(pitch + self.pitchOffs))
             ob.rotation_euler.rotate_axis("Y", radians(roll + self.rollOffs))
 
             # rotate localy (matrix transform)

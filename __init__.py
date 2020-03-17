@@ -51,7 +51,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty
 from bpy.types import Operator
 
 
-def read_jkl_data(context, filename, importThings, importMats):
+def read_jkl_data(context, filename, importThings, importMats, importIntensities):
     print("reading jkl data file...")
     f = open(filename, 'r')
     lines=f.readlines()  # store the entire file in a variable 
@@ -234,8 +234,6 @@ def read_jkl_data(context, filename, importThings, importMats):
         uv_index_list = []
         surf_intensities = []
         i+=1
-        
-        print(surf_intensities_list)
 
         # else:
         #     # material_indices.append(matId)            # material id for skipped faces (sky or portals). necessary?
@@ -460,11 +458,25 @@ def read_jkl_data(context, filename, importThings, importMats):
                 x_tile = tiling[0]                                                  # what's that for? multiplication for size? addition for translation?
                 y_tile = tiling[1]
                 uvMap.data[polygon.loop_indices[jsrf]].uv = (u, v)
-                r=0.9
-                g=0.9
-                b=0.9
-                color = (r, g, b, 1.0)
-                vcol.data[polygon.loop_indices[jsrf]].color = color
+
+                if importIntensities:
+                    color=()
+                    if motsflag:
+
+                        r = surf_intensities_list[isrf][jsrf*4+1]
+
+                        g = surf_intensities_list[isrf][jsrf*4+2]
+
+                        b = surf_intensities_list[isrf][jsrf*4+3]
+
+                        color = (r, g, b, 1.0)
+                    else:
+                        surf_light = surf_intensities_list[isrf][jsrf]
+                        r = surf_light
+                        g = surf_light
+                        b = surf_light
+                        color = (r, g, b, 1.0)
+                    vcol.data[polygon.loop_indices[jsrf]].color = color
 
         # add uv data
         
@@ -516,6 +528,12 @@ class ImportJKLfile(Operator, ImportHelper):
         description="Level geometry and things are textured with Materials (.mat), if found",
         default=True,
     )
+
+    import_intensities: BoolProperty(
+        name="Import Light Intensities",
+        description="Imports jkl light intensities as vertex color information. Is then multiplied to texture node",
+        default=False,
+    )
 #
 #   type: EnumProperty(
 #        name="Example Enum",
@@ -528,7 +546,7 @@ class ImportJKLfile(Operator, ImportHelper):
 #    )
 
     def execute(self, context):
-        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats)
+        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities)
 
 
 # Only needed if you want to add into a dynamic menu
