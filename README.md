@@ -1,5 +1,3 @@
-# jediknight2blender
-
 ### Addon for blender 2.8
 
 ## Import Jedi Knight: Dark Forces 2 level files (.jkl) into blender 2.8
