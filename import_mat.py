@@ -3,7 +3,7 @@ import bpy
 import re
 import pathlib
 
-def import_mat(matfile, cmpfile):
+def import_mat(matfile, cmpfile, alpha):
     '''
     reads an image from a JK mat file and its corresponding cmp file and returns a material with diffuse map
     '''
@@ -73,9 +73,10 @@ def import_mat(matfile, cmpfile):
                 r = cmp[64+(cmp_index*3)]/255
                 g = cmp[65+(cmp_index*3)]/255
                 b = cmp[66+(cmp_index*3)]/255
+
                 table = 256*0                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
                 a = cmp[832+table+cmp_index]/64           # 
-                # a = 1.0
+
                 pixels[(y * size[0]) + x] = [r, g, b, a]
 
 
@@ -106,7 +107,7 @@ def import_mat(matfile, cmpfile):
 
         mixColor = mat.node_tree.nodes.new('ShaderNodeMixRGB')
         mixColor.blend_type = 'MULTIPLY'
-        mixColor.inputs[0].default_value = 1.0
+        mixColor.inputs[0].default_value = 0.75
         mixColor.location = -250, 300
 
         # assign texture
@@ -117,7 +118,9 @@ def import_mat(matfile, cmpfile):
         mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
         mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
 
-        mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
+        if alpha:
+            mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
+
         
     else:
         
@@ -154,5 +157,5 @@ class Mat:
     def __str__(self):
         print(self.mat, self.cmp)
 
-    def importMat(matfile, cmpfile):
-        import_mat(matfile, cmpfile)
+    def importMat(matfile, cmpfile, alpha):
+        import_mat(matfile, cmpfile, alpha)

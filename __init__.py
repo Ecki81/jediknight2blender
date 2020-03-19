@@ -199,6 +199,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     uv_index_list = []
     material_indices = []
 
+    alpha_mats = []
+
     i=0
     while i < int(surfaceCount):
         surfLine=re.split("\s+", lines[i+scPos+1],)
@@ -220,6 +222,10 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
         material_indices.append(matId)
 		
+        if adjoin > -1 and matId > -1:
+            alpha_mats.append(matId)
+            alpha_mats = sorted(set(alpha_mats))
+
         j = 0
         while j < nvert:
             v_index  = re.split(",",surfLine[j+10])
@@ -247,6 +253,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         surf_intensities = []
         i+=1
 
+    print(alpha_mats)
 
     # read in materials ################################################
     # TODO find better ways to terminate at end of material list
@@ -324,14 +331,15 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     # call material loading class ###########################################
     
+    alpha = False
+
     if importMats:
         for material in mat_list:
-            testmat = Mat(thingmatpath / material, cmppath / colormap)
             try:
-                Mat.importMat(thingmatpath / material, cmppath / colormap)
+                Mat.importMat(thingmatpath / material, cmppath / colormap, alpha)
             except:
                 try:
-                    Mat.importMat(matpath / material, cmppath / colormap)
+                    Mat.importMat(matpath / material, cmppath / colormap, alpha)
                 except:
                     placeholder_mat(material)
                     print("couldn't import " + material + ". created placeholder mat") 
@@ -481,7 +489,6 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                         color = (r, g, b, 1.0)
                     vcol.data[polygon.loop_indices[jsrf]].color = color
 
-        # add uv data
         
 
         # Update mesh with new data
@@ -535,7 +542,7 @@ class ImportJKLfile(Operator, ImportHelper):
     import_intensities: BoolProperty(
         name="Import Light Intensities",
         description="Imports jkl light intensities as vertex color information. Is then multiplied to texture node",
-        default=True,
+        default=False,
     )
 #
 #   type: EnumProperty(
