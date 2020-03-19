@@ -218,26 +218,34 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         #scrollflag=(surfflag & 0x800)
         # if adjoin + material, then probably transparent!
 
+        material_indices.append(matId)
 		
-        j=0
+        j = 0
         while j < nvert:
             v_index  = re.split(",",surfLine[j+10])
             surf_vertices.append(int(v_index[0]))                       
             uv_index_list.append(int(v_index[1]))
-            surf_intensities.append(float(surfLine[10+nvert+j]))
             j+=1
         surf_list.append(surf_vertices)
         uv_indices.append(uv_index_list)
+
+
+        j = 0
+        if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
+            while j < nvert*4:
+                surf_intensities.append(float(surfLine[10+nvert+j]))
+                j+=1
+        else:
+            while j < nvert:
+                surf_intensities.append(float(surfLine[10+nvert+j]))
+                j+=1
         surf_intensities_list.append(surf_intensities)
-        material_indices.append(matId)
+
+
         surf_vertices = []
         uv_index_list = []
         surf_intensities = []
         i+=1
-
-        # else:
-        #     # material_indices.append(matId)            # material id for skipped faces (sky or portals). necessary?
-        #     i+=1
 
 
     # read in materials ################################################
@@ -325,9 +333,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 try:
                     Mat.importMat(matpath / material, cmppath / colormap)
                 except:
-                    print("couldn't import material " + material)
                     placeholder_mat(material)
-                    print("placeholder material created")
+                    print("couldn't import " + material + ". created placeholder mat") 
 
     else:
         print("skipped material import")
@@ -462,13 +469,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 if importIntensities:
                     color=()
                     if motsflag:
-
                         r = surf_intensities_list[isrf][jsrf*4+1]
-
                         g = surf_intensities_list[isrf][jsrf*4+2]
-
                         b = surf_intensities_list[isrf][jsrf*4+3]
-
                         color = (r, g, b, 1.0)
                     else:
                         surf_light = surf_intensities_list[isrf][jsrf]
@@ -532,7 +535,7 @@ class ImportJKLfile(Operator, ImportHelper):
     import_intensities: BoolProperty(
         name="Import Light Intensities",
         description="Imports jkl light intensities as vertex color information. Is then multiplied to texture node",
-        default=False,
+        default=True,
     )
 #
 #   type: EnumProperty(
