@@ -92,13 +92,13 @@ class Thing:
         # get to the hierarchy ##########################################
 
         hiPos = 0
-        hierarchyNodes = 0
+        hierarchy_nodes = 0
         i=0
         while i < len(lines):
             i+=1
             if re.search("HIERARCHY NODES ",lines[i])!=None:
-                hierarchyString = re.split("\s", lines[i])
-                hierarchyNodes = int(hierarchyString[2])
+                hierarchy_string = re.split("\s", lines[i])
+                hierarchy_nodes = int(hierarchy_string[2])
                 hiPos = i+2
                 break   
 
@@ -107,7 +107,30 @@ class Thing:
         scPos = 0
         uvPos = 0
 
-        # print(str(hierarchyNodes))
+        # put hierarchy in 2d-array #########################################
+
+        hier_array = []  # 2D array with vertices x, y, z
+
+
+        i=0
+        while i < hierarchy_nodes:
+            if motsflag:
+                hier_line=re.split("\s+", lines[i+hiPos])
+                del hier_line[0]
+                del hier_line[-1]
+            else:
+                hier_line=re.split("\s+", lines[i+hiPos+1])
+                del hier_line[0]
+                del hier_line[-1]
+
+            hier_array.append(hier_line)
+            i+=1
+
+        # hier_array = sorted(hier_array, key = lambda x : x[3])        # sorting?
+
+        for line in hier_array:
+            print(line)
+        print(' ')
 
         # go through every mesh #############################################
 
@@ -174,7 +197,7 @@ class Thing:
 
             
             i=0
-            while i < int(hierarchyNodes):
+            while i < int(hierarchy_nodes):
                 hier_line=""
                 if motsflag:
                     hier_line=re.split("\s+", lines[i+hiPos])
