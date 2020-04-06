@@ -47,11 +47,11 @@ import pathlib
 # ImportHelper is a helper class, defines filename and
 # invoke() function which calls the file selector.
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty
+from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Operator
 
 
-def read_jkl_data(context, filename, importThings, importMats, importIntensities):
+def read_jkl_data(context, filename, importThings, importMats, importIntensities, scale):
     print("reading jkl data file...")
     f = open(filename, 'r')
     lines=f.readlines()  # store the entire file in a variable 
@@ -88,6 +88,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             break
         parent += 1
 
+    scale = scale * 10.0
 
     # would normally load the data here
     # get the vertex count ##########################################
@@ -160,7 +161,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     # read in vertices ###############################################
 
     vertArray = []  # 2D array with vertices x, y, z
-
+    #scale = 10.0
 
     i=0
     while i < int(vertexCount):
@@ -168,9 +169,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         vertLine=re.split("\s+", lines[i+vcPos], 4)
         del vertLine[0]
         del vertLine[3]
-        vertLine[0]=float(vertLine[0])
-        vertLine[1]=float(vertLine[1])
-        vertLine[2]=float(vertLine[2])
+        vertLine[0]=float(vertLine[0]) * scale
+        vertLine[1]=float(vertLine[1]) * scale
+        vertLine[2]=float(vertLine[2]) * scale
         vertArray.append(vertLine)
 
     # read in uvs #####################################################
@@ -399,7 +400,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         
         for mesh in thingsList:
             try:
-                thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]))
+                thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
                 thing.import_Thing()
                 things_names[mesh[0][:-4]] = thing.name # fill dictionary with object file names and its corresponding JK ingame names
             except:
@@ -544,6 +545,14 @@ class ImportJKLfile(Operator, ImportHelper):
         description="Imports jkl light intensities as vertex color information. Is then multiplied to texture node",
         default=False,
     )
+
+    import_scale: FloatProperty(
+        name="Scale",
+        description="Default jk scale is 0.1 blender units; scale \"1.00\" multiplies jk with 10",
+        default=1.0,
+        min=0.0001,
+    )
+
 #
 #   type: EnumProperty(
 #        name="Example Enum",
@@ -556,7 +565,7 @@ class ImportJKLfile(Operator, ImportHelper):
 #    )
 
     def execute(self, context):
-        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities)
+        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_scale)
 
 
 # Only needed if you want to add into a dynamic menu
@@ -570,15 +579,11 @@ def import_jkl_button(self, context):
 
 def register():
     bpy.utils.register_class(ImportJKLfile)
-    #bpy.utils.register_class(Thing)
-    #bpy.types.VIEW3D_MT_image_add.append(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.append(import_jkl_button)
 
 
 def unregister():
     bpy.utils.unregister_class(ImportJKLfile)
-    #bpy.utils.unregister_class(Thing)
-    #bpy.types.VIEW3D_MT_image_add.remove(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
 
 

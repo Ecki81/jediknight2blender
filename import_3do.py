@@ -5,18 +5,27 @@ import pathlib
 
 class Thing:
 
-    def __init__(self, file, x, y, z, pitch, yaw, roll):
+    def __init__(self, file, x, y, z, pitch, yaw, roll, scale):
         '''
         Initializes a Thing with name (filename.3do), xyz position and rotation offset
         '''
         self.file = file
-        self.xOffs = x
-        self.yOffs = y
-        self.zOffs = z
+        self.xOffs = x * scale
+        self.yOffs = y * scale
+        self.zOffs = z * scale
         self.pitchOffs = pitch
         self.yawOffs = yaw
         self.rollOffs = roll
         self.name = ""
+        self.scale = scale
+
+
+    def tree(self, hierarchy):
+        self.hier_array = hierarchy
+        # build a tree structure, that import_Thing can use for parenting the objects
+
+        print(self.name, "calling tree method (TBW)")
+
 
     def import_Thing(self):
         # import_3do(self.name, self.x, self.y, self.z, self.pitch, self.yaw, self.roll)
@@ -128,9 +137,9 @@ class Thing:
 
         # hier_array = sorted(hier_array, key = lambda x : x[3])        # sorting?
 
-        for line in hier_array:
-            print(line)
-        print(' ')
+        # for line in self.hier_array:
+        #     print(line)
+        # print(' ')
 
         # go through every mesh #############################################
 
@@ -211,15 +220,15 @@ class Thing:
                 else:
                     #print("Name found: " + hier_line[17])
                     self.name = hier_line[17]
-                    x = float(hier_line[8])
-                    y = float(hier_line[9])
-                    z = float(hier_line[10])
+                    x = float(hier_line[8]) * self.scale
+                    y = float(hier_line[9]) * self.scale
+                    z = float(hier_line[10]) * self.scale
                     pitch = float(hier_line[11])
                     yaw = float(hier_line[12])
                     roll = float(hier_line[13])
-                    pivot_x = float(hier_line[14])
-                    pivot_y = float(hier_line[15])
-                    pivot_z = float(hier_line[16])
+                    pivot_x = float(hier_line[14]) * self.scale
+                    pivot_y = float(hier_line[15]) * self.scale
+                    pivot_z = float(hier_line[16]) * self.scale
                     i+=1
                 #verts=int(hier_line[8])                          # count of vertexes needed for surfaces (nverts)
                 #geomode=int(hier_line[4]) 
@@ -252,9 +261,9 @@ class Thing:
                 # del vert_line[0]
                 # del vert_line[3]
                 # del vert_line[3]
-                vert_line[0]=float(vert_line[0])
-                vert_line[1]=float(vert_line[1])
-                vert_line[2]=float(vert_line[2])
+                vert_line[0]=float(vert_line[0]) * self.scale
+                vert_line[1]=float(vert_line[1]) * self.scale
+                vert_line[2]=float(vert_line[2]) * self.scale
                 vert_array.append(vert_line)
                 i+=1
 
@@ -349,7 +358,6 @@ class Thing:
                 except:
                     pass
 
-            # TODO parenting
             # offset has to be applied to root object
             ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)     # wrong! translation has to be relative to parent object. this only works in hierarchy with depth of 1
 
@@ -370,6 +378,7 @@ class Thing:
             me.uv_layers.new(name="UVMap")
             uvMap = me.uv_layers["UVMap"]
 
+            # TODO Test, if texture exists!!!
             # assign every needed material to faces
             for isrf, surface in enumerate(surf_array):
                 polygon = me.polygons[isrf]
@@ -386,12 +395,17 @@ class Thing:
 
             midx+=1
 
+        self.tree(hier_array)
+        
+    
+
+
     def copy_Thing(self):
         path = pathlib.Path(self.file)
         obj_string = path.parts[-1]
         print("object", obj_string, "with name", self.name, "is already existing.")
 
-    def name(self):
+    def __str__(self):
         return self.name
 
 
