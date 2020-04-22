@@ -24,7 +24,31 @@ class Thing:
         self.hier_array = hierarchy
         # build a tree structure, that import_Thing can use for parenting the objects
 
-        print(self.name, "calling tree method (TBW)")
+        def has_parent(node):
+            parent = int(self.hier_array[node][4])
+            x = float(self.hier_array[node][8])
+            y = float(self.hier_array[node][9])
+            z = float(self.hier_array[node][10])
+            x_add = float(self.hier_array[parent][8])
+            y_add = float(self.hier_array[parent][9])
+            z_add = float(self.hier_array[parent][10])
+            node_name = self.hier_array[parent][-1]
+            if node != -1:
+                print("    has parent", node_name)
+                self.hier_array[node][8] = x + x_add
+                self.hier_array[node][9] = y + y_add
+                self.hier_array[node][10] = z + z_add
+                has_parent(parent)
+            else:
+                print("    has no parent")
+            return parent
+
+        for line in self.hier_array:
+            # print(line[-1])
+            parent = int(line[4])
+            print(line[-1])
+            has_parent(parent)
+
 
 
     def import_Thing(self):

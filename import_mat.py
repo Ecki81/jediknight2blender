@@ -107,7 +107,7 @@ def import_mat(matfile, cmpfile, alpha):
 
         mixColor = mat.node_tree.nodes.new('ShaderNodeMixRGB')
         mixColor.blend_type = 'MULTIPLY'
-        mixColor.inputs[0].default_value = 0.75
+        mixColor.inputs[0].default_value = 0.98
         mixColor.location = -250, 300
 
         # assign texture
