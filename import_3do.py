@@ -21,37 +21,35 @@ class Thing:
 
 
     def tree(self, hierarchy):
-        self.hier_array = hierarchy
-        # build a tree structure, that import_Thing can use for parenting the objects
+        '''reads in hierarchy, returns with absolute x, y, z transforms'''
 
-        def has_parent(node):
-            parent = int(self.hier_array[node][4])
-            x = float(self.hier_array[node][8])
-            y = float(self.hier_array[node][9])
-            z = float(self.hier_array[node][10])
-            x_add = float(self.hier_array[parent][8])
-            y_add = float(self.hier_array[parent][9])
-            z_add = float(self.hier_array[parent][10])
-            node_name = self.hier_array[parent][-1]
+        absolute_transforms = [0.0, 0.0, 0.0]
+
+        def has_parent(node, transf):
+            parent = int(hierarchy[node][4])
+            node_name = hierarchy[node][-1]
             if node != -1:
-                print("    has parent", node_name)
-                self.hier_array[node][8] = x + x_add
-                self.hier_array[node][9] = y + y_add
-                self.hier_array[node][10] = z + z_add
-                has_parent(parent)
+                transf[0] = transf[0] + float(hierarchy[node][8])
+                transf[1] = transf[1] + float(hierarchy[node][9])
+                transf[2] = transf[2] + float(hierarchy[node][10])
+                print("    has parent", node_name, transf)
+                has_parent(parent, transf)
             else:
                 print("    has no parent")
-            return parent
+            return transf
 
-        for line in self.hier_array:
-            # print(line[-1])
+        for i, line in enumerate(hierarchy):
             parent = int(line[4])
-            print(line[-1])
-            has_parent(parent)
+            node_text = line[-1]
+            print(node_text, absolute_transforms)
+            new_transforms = has_parent(parent, absolute_transforms)
+            print(new_transforms)
+
 
 
 
     def import_Thing(self):
+        '''read in and build 3do mesh'''
         # import_3do(self.name, self.x, self.y, self.z, self.pitch, self.yaw, self.roll)
         f=open(self.file,'r') # open file for reading
         lines=f.readlines()  # store the entire file in a variable
@@ -159,11 +157,7 @@ class Thing:
             hier_array.append(hier_line)
             i+=1
 
-        # hier_array = sorted(hier_array, key = lambda x : x[3])        # sorting?
 
-        # for line in self.hier_array:
-        #     print(line)
-        # print(' ')
 
         # go through every mesh #############################################
 
@@ -425,6 +419,7 @@ class Thing:
 
 
     def copy_Thing(self):
+        '''takes Thing mesh, returns copied Thing'''
         path = pathlib.Path(self.file)
         obj_string = path.parts[-1]
         print("object", obj_string, "with name", self.name, "is already existing.")
