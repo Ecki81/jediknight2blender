@@ -23,8 +23,6 @@ class Thing:
     def tree(self, hierarchy):
         '''reads in hierarchy, returns with absolute x, y, z transforms'''
 
-        absolute_transforms = [0.0, 0.0, 0.0]
-
         def has_parent(node, transf):
             parent = int(hierarchy[node][4])
             node_name = hierarchy[node][-1]
@@ -41,8 +39,9 @@ class Thing:
         for i, line in enumerate(hierarchy):
             parent = int(line[4])
             node_text = line[-1]
-            print(node_text, absolute_transforms)
-            new_transforms = has_parent(parent, absolute_transforms)
+            default_transforms = [0.0, 0.0, 0.0]
+            print(node_text, default_transforms)
+            new_transforms = has_parent(parent, default_transforms)
             print(new_transforms)
 
 
