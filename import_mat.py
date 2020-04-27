@@ -87,10 +87,11 @@ class Mat:
                     r = cmp[64+(cmp_index*3)]/255
                     g = cmp[65+(cmp_index*3)]/255
                     b = cmp[66+(cmp_index*3)]/255
-
-                    table = 256*0                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
-                    a = cmp[832+table+cmp_index]/64           # 
-
+                    if alpha:
+                        table = 256*0                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
+                        a = cmp[832+table+cmp_index]/64           # 
+                    else:
+                        a = 1.0
                     pixels[(y * size[0]) + x] = [r, g, b, a]
 
 

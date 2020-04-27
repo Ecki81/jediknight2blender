@@ -27,10 +27,16 @@ class Thing:
             parent = int(hierarchy[node][4])
             node_name = hierarchy[node][-1]
             if node != -1:
+                print("    has parent", node_name, transf)
                 transf[0] = transf[0] + float(hierarchy[node][8])
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                print("    has parent", node_name, transf)
+                # transf[3] = transf[3] + float(hierarchy[node][11])
+                # transf[4] = transf[4] + float(hierarchy[node][12])
+                # transf[5] = transf[5] + float(hierarchy[node][13])
+                # transf[6] = transf[6] + float(hierarchy[node][14])
+                # transf[7] = transf[7] + float(hierarchy[node][15])
+                # transf[8] = transf[8] + float(hierarchy[node][16])
                 has_parent(parent, transf)
             else:
                 print("    has no parent")
@@ -41,8 +47,19 @@ class Thing:
             node_text = line[-1]
             default_transforms = [0.0, 0.0, 0.0]
             print(node_text, default_transforms)
-            new_transforms = has_parent(parent, default_transforms)
-            print(new_transforms)
+            new_transforms = has_parent(i, default_transforms)
+            print(new_transforms[0:2])
+            line[8] = new_transforms[0]
+            line[9] = new_transforms[1]
+            line[10] = new_transforms[2]
+            # line[11] = new_transforms[3]
+            # line[12] = new_transforms[4]
+            # line[13] = new_transforms[5]
+            # line[14] = new_transforms[6]
+            # line[15] = new_transforms[7]
+            # line[16] = new_transforms[8]
+
+        return hierarchy
 
 
 
@@ -157,6 +174,8 @@ class Thing:
             i+=1
 
 
+        abs_hier_array = self.tree(hier_array)
+
 
         # go through every mesh #############################################
 
@@ -221,37 +240,21 @@ class Thing:
             pivot_y = 0.0
             pivot_z = 0.0
 
+            for node in abs_hier_array:
+                if int(node[3]) != midx:
+                    pass
+                else:
+                    self.name = node[17]
+                    x = float(node[8])* self.scale
+                    y = float(node[9])* self.scale
+                    z = float(node[10]) * self.scale
+                    pitch = float(node[11])
+                    pitch = float(node[12])
+                    pitch = float(node[13])
+                    pivot_x = float(node[14]) * self.scale
+                    pivot_y = float(node[15]) * self.scale
+                    pivot_z = float(node[16]) * self.scale
             
-            i=0
-            while i < int(hierarchy_nodes):
-                hier_line=""
-                if motsflag:
-                    hier_line=re.split("\s+", lines[i+hiPos])
-                else:
-                    hier_line=re.split("\s+", lines[i+hiPos+1])
-                #hier_line=re.split("\s+", lines[i+hiPos+1])
-                hier_line=list(filter(None, hier_line))
-                if int(hier_line[3]) != midx:
-                    #print("Name not found: " + hier_line[3] + " != " + str(midx))
-                    i+=1
-                else:
-                    #print("Name found: " + hier_line[17])
-                    self.name = hier_line[17]
-                    x = float(hier_line[8]) * self.scale
-                    y = float(hier_line[9]) * self.scale
-                    z = float(hier_line[10]) * self.scale
-                    pitch = float(hier_line[11])
-                    yaw = float(hier_line[12])
-                    roll = float(hier_line[13])
-                    pivot_x = float(hier_line[14]) * self.scale
-                    pivot_y = float(hier_line[15]) * self.scale
-                    pivot_z = float(hier_line[16]) * self.scale
-                    i+=1
-                #verts=int(hier_line[8])                          # count of vertexes needed for surfaces (nverts)
-                #geomode=int(hier_line[4]) 
-                #print(hier_line)
-                #i+=1
-
 
             # read in vertices ###############################################
 
@@ -412,7 +415,6 @@ class Thing:
 
             midx+=1
 
-        self.tree(hier_array)
         
     
 

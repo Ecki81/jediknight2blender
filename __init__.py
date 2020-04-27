@@ -51,7 +51,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Operator
 
 
-def read_jkl_data(context, filename, importThings, importMats, importIntensities, scale):
+def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale):
     print("reading jkl data file...")
     f = open(filename, 'r')
     lines=f.readlines()  # store the entire file in a variable 
@@ -332,7 +332,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     # call material loading class ###########################################
     
-    alpha = False
+    alpha = importAlpha
 
     if importMats:
         for material in mat_list:
@@ -529,20 +529,26 @@ class ImportJKLfile(Operator, ImportHelper):
     # List of operator properties, the attributes will be assigned
     # to the class instance from the operator settings before calling.
     import_things: BoolProperty(
-        name="Import Things",
-        description="Level things (.3do files) are additionally imported and placed, if found",
+        name="Things",
+        description="Level things (.3do meshes) are imported and placed, if found",
         default=True,
     )
 
     import_mats: BoolProperty(
-        name="Import Materials",
-        description="Level geometry and things are textured with Materials (.mat), if found",
+        name="Materials",
+        description="Level and thing meshes are textured with materials (.mat), if found",
         default=True,
     )
 
     import_intensities: BoolProperty(
-        name="Import Light Intensities",
-        description="Imports jkl light intensities as vertex color information. Is then multiplied to texture node",
+        name="Light Intensities",
+        description="Imports jkl light intensities as vertex color information. Vertex colors are added to material via multiplier node",
+        default=False,
+    )
+
+    import_alpha: BoolProperty(
+        name="Transparency",
+        description="Alpha from 1st transparency table in .cmp file.",
         default=False,
     )
 
@@ -564,8 +570,23 @@ class ImportJKLfile(Operator, ImportHelper):
 #        default='OPT_A',
 #    )
 
+    def draw_import_config(self, context):
+        layout = self.layout
+        box = layout.box()
+
+        box.label(text = "JKL Import Options", icon='IMPORT')
+        box.prop(self, "import_things")
+        box.prop(self, "import_mats")
+        if self.import_mats:
+            box.prop(self, "import_alpha")
+        box.prop(self, "import_intensities")
+        box.prop(self, "import_scale")
+
+    def draw(self, context):
+        self.draw_import_config(context)
+
     def execute(self, context):
-        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_scale)
+        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale)
 
 
 # Only needed if you want to add into a dynamic menu
