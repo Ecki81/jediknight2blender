@@ -606,10 +606,3 @@ def register():
 def unregister():
     bpy.utils.unregister_class(ImportJKLfile)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
-
-
-if __name__ == "__main__":
-    register()
-
-    # test call
-    bpy.ops.import_scene.jkl_data('INVOKE_DEFAULT')

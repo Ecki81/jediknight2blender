@@ -25,43 +25,34 @@ class Thing:
 
         def has_parent(node, transf):
             parent = int(hierarchy[node][4])
-            node_name = hierarchy[node][-1]
-            if node != -1:
-                print("    has parent", node_name, transf)
-                transf[0] = transf[0] + float(hierarchy[node][8])
+            node_name = hierarchy[parent][-1]
+            if parent != -1:                                                # If it is a child
+                transf[0] = transf[0] + float(hierarchy[node][8])           # loc
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                # transf[3] = transf[3] + float(hierarchy[node][11])
-                # transf[4] = transf[4] + float(hierarchy[node][12])
-                # transf[5] = transf[5] + float(hierarchy[node][13])
-                # transf[6] = transf[6] + float(hierarchy[node][14])
-                # transf[7] = transf[7] + float(hierarchy[node][15])
-                # transf[8] = transf[8] + float(hierarchy[node][16])
+                # print("    has parent", node_name, transf)
                 has_parent(parent, transf)
-            else:
-                print("    has no parent")
+            else:                                                           # If it is the root
+                transf[0] = transf[0] + float(hierarchy[node][8])           # loc
+                transf[1] = transf[1] + float(hierarchy[node][9])
+                transf[2] = transf[2] + float(hierarchy[node][10])
+                # print("   ", hierarchy[node][-1], "is the root", transf)
+                return transf
             return transf
 
         for i, line in enumerate(hierarchy):
-            parent = int(line[4])
             node_text = line[-1]
             default_transforms = [0.0, 0.0, 0.0]
-            print(node_text, default_transforms)
+            last = False
+            # print(node_text)
             new_transforms = has_parent(i, default_transforms)
-            print(new_transforms[0:2])
             line[8] = new_transforms[0]
             line[9] = new_transforms[1]
             line[10] = new_transforms[2]
-            # line[11] = new_transforms[3]
-            # line[12] = new_transforms[4]
-            # line[13] = new_transforms[5]
-            # line[14] = new_transforms[6]
-            # line[15] = new_transforms[7]
-            # line[16] = new_transforms[8]
+
+
 
         return hierarchy
-
-
 
 
     def import_Thing(self):
@@ -163,7 +154,7 @@ class Thing:
         while i < hierarchy_nodes:
             if motsflag:
                 hier_line=re.split("\s+", lines[i+hiPos])
-                del hier_line[0]
+                #del hier_line[0]
                 del hier_line[-1]
             else:
                 hier_line=re.split("\s+", lines[i+hiPos+1])
@@ -173,8 +164,11 @@ class Thing:
             hier_array.append(hier_line)
             i+=1
 
-
         abs_hier_array = self.tree(hier_array)
+
+    
+        obj_list = []       # empty list for 3do objects
+
 
 
         # go through every mesh #############################################
@@ -249,8 +243,8 @@ class Thing:
                     y = float(node[9])* self.scale
                     z = float(node[10]) * self.scale
                     pitch = float(node[11])
-                    pitch = float(node[12])
-                    pitch = float(node[13])
+                    yaw = float(node[12])
+                    roll = float(node[13])
                     pivot_x = float(node[14]) * self.scale
                     pivot_y = float(node[15]) * self.scale
                     pivot_z = float(node[16]) * self.scale
@@ -368,6 +362,8 @@ class Thing:
             ob = bpy.data.objects.new(self.name, me)
             ob.show_name = False
 
+            obj_list.append(ob)
+
             # add vertex color layer
             vcol = me.vertex_colors.new(name='Intensities')
 
@@ -381,12 +377,11 @@ class Thing:
             # offset has to be applied to root object
             ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)     # wrong! translation has to be relative to parent object. this only works in hierarchy with depth of 1
 
-            
+
             ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
             ob.rotation_euler.rotate_axis("X", radians(pitch + self.pitchOffs))
             ob.rotation_euler.rotate_axis("Y", radians(roll + self.rollOffs))
 
-            # rotate localy (matrix transform)
             
             # Link object to scene
             scene = bpy.context.scene
@@ -407,13 +402,45 @@ class Thing:
                 textureSize = bpy.data.images[currenttexture].size
                 # add uv data
                 for jsrf, loop in enumerate(uv_indices[isrf]):
-                    uvMap.data[polygon.loop_indices[jsrf]].uv = (float(uvArray[uv_indices[isrf][jsrf]][0])/textureSize[0], float(uvArray[uv_indices[isrf][jsrf]][1])/-textureSize[1])
+                    u = float(uvArray[uv_indices[isrf][jsrf]][0])
+                    v = float(uvArray[uv_indices[isrf][jsrf]][1])
+                    uvMap.data[polygon.loop_indices[jsrf]].uv = (u / textureSize[0], v /-textureSize[1])
 
 
             # Update mesh with new data
             me.update()
 
             midx+=1
+
+
+        # add $$$dummy objects to object array
+        # _________________________________________________________________________________________
+
+        dummy_index = 0
+
+        for i, mesh in enumerate(hier_array):
+            mesh_name = mesh[-1].lower()
+            if mesh_name == "$$$dummy":
+                dummy_index += 1
+                empty = bpy.data.objects.new( "empty", None )
+                bpy.context.scene.collection.objects.link(empty)
+                empty.empty_display_size = 1
+                empty.empty_display_type = 'PLAIN_AXES'
+                empty.location = (mesh[8] + self.xOffs, mesh[9] + self.yOffs, mesh[10] + self.zOffs)
+                obj_list.insert(i, empty)
+            else:
+                pass
+
+
+        for obj in obj_list:
+            for name in hier_array:
+                if obj.name != name[-1]:
+                    pass
+                else:
+                    print("object", obj.name, "->", name[-1])
+
+
+
 
         
     
