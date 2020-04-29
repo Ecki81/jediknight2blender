@@ -154,7 +154,6 @@ class Thing:
         while i < hierarchy_nodes:
             if motsflag:
                 hier_line=re.split("\s+", lines[i+hiPos])
-                #del hier_line[0]
                 del hier_line[-1]
             else:
                 hier_line=re.split("\s+", lines[i+hiPos+1])
@@ -378,9 +377,9 @@ class Thing:
             ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)     # wrong! translation has to be relative to parent object. this only works in hierarchy with depth of 1
 
 
-            ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
-            ob.rotation_euler.rotate_axis("X", radians(pitch + self.pitchOffs))
-            ob.rotation_euler.rotate_axis("Y", radians(roll + self.rollOffs))
+            # ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
+            # ob.rotation_euler.rotate_axis("X", radians(pitch + self.pitchOffs))
+            # ob.rotation_euler.rotate_axis("Y", radians(roll + self.rollOffs))
 
             
             # Link object to scene
@@ -417,6 +416,23 @@ class Thing:
         # _________________________________________________________________________________________
 
         dummy_index = 0
+        
+        mesh_numbers = []
+
+        for mesh in hier_array:
+            mesh_no = int(mesh[3])
+            if mesh_no != -1:
+                mesh_numbers.append(mesh_no)
+            else:
+                pass
+
+        sorting_list = []
+        for i, obj in enumerate(obj_list):
+            sorting_list.append(i)
+
+        sorting_list.sort(key=dict(zip(sorting_list, mesh_numbers)).get)
+        obj_list.sort(key=dict(zip(obj_list, sorting_list)).get)
+
 
         for i, mesh in enumerate(hier_array):
             mesh_name = mesh[-1].lower()
@@ -432,19 +448,23 @@ class Thing:
                 pass
 
 
-        for obj in obj_list:
-            for name in hier_array:
-                if obj.name != name[-1]:
-                    pass
-                else:
-                    print("object", obj.name, "->", name[-1])
+        bpy.context.view_layer.update()                     # update all object matrices
 
+        for i, mesh in enumerate(hier_array):
+            parent_no = int(mesh[4])
+            if parent_no != -1:
+                child = obj_list[i]
+                matrixcopy = child.matrix_world.copy()
+                parent = obj_list[int(parent_no)]
+                child.parent = parent
+                child.matrix_world = matrixcopy
+            else:
+                pass
 
-
-
+        obj_list[0].rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
+        obj_list[0].rotation_euler.rotate_axis("X", radians(self.pitchOffs))
+        obj_list[0].rotation_euler.rotate_axis("Y", radians(self.rollOffs))
         
-    
-
 
     def copy_Thing(self):
         '''takes Thing mesh, returns copied Thing'''
