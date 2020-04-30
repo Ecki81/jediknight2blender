@@ -23,6 +23,8 @@ class Thing:
     def tree(self, hierarchy):
         '''reads in hierarchy, returns with absolute x, y, z transforms'''
 
+        new_hierarchy = []
+
         def has_parent(node, transf):
             parent = int(hierarchy[node][4])
             node_name = hierarchy[parent][-1]
@@ -30,29 +32,39 @@ class Thing:
                 transf[0] = transf[0] + float(hierarchy[node][8])           # loc
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                # print("    has parent", node_name, transf)
+                print("    has parent", node_name, float(hierarchy[parent][8]))
                 has_parent(parent, transf)
             else:                                                           # If it is the root
                 transf[0] = transf[0] + float(hierarchy[node][8])           # loc
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                # print("   ", hierarchy[node][-1], "is the root", transf)
+                print("   ", hierarchy[node][-1], "is the root", float(hierarchy[parent][8]))
                 return transf
             return transf
 
         for i, line in enumerate(hierarchy):
+            new_hierarchy_line = []
             node_text = line[-1]
             default_transforms = [0.0, 0.0, 0.0]
             last = False
-            # print(node_text)
+            print(node_text, line[8])
             new_transforms = has_parent(i, default_transforms)
-            line[8] = new_transforms[0]
-            line[9] = new_transforms[1]
-            line[10] = new_transforms[2]
+            for j, element in enumerate(line):
+                if j == 8:
+                    element = new_transforms[0]
+                elif j == 9:
+                    element = new_transforms[1]
+                elif j == 10:
+                    element = new_transforms[2]
+                else:
+                    element = line[j]
+                new_hierarchy_line.append(element)
+            new_hierarchy.append(new_hierarchy_line)
 
+        for line in new_hierarchy:
+            print(line)
 
-
-        return hierarchy
+        return new_hierarchy
 
 
     def import_Thing(self):
@@ -257,23 +269,20 @@ class Thing:
             i=0
             while i < int(vertex_count):
                 vert_line=""
+                
                 if motsflag:
                     vert_line=re.split("\s+", lines[i+vc_pos+1])
                     del vert_line[0]
                     del vert_line[3]
                     del vert_line[3]
-                    #print(vert_line)
+
                 else:
                     vert_line=re.split("\s+", lines[i+vc_pos+2])
                     del vert_line[0]
                     del vert_line[0]
                     del vert_line[3]
                     del vert_line[3]
-                    #print(vert_line)
-                # del vert_line[0]
-                # del vert_line[0]
-                # del vert_line[3]
-                # del vert_line[3]
+
                 vert_line[0]=float(vert_line[0]) * self.scale
                 vert_line[1]=float(vert_line[1]) * self.scale
                 vert_line[2]=float(vert_line[2]) * self.scale
@@ -392,13 +401,17 @@ class Thing:
             me.uv_layers.new(name="UVMap")
             uvMap = me.uv_layers["UVMap"]
 
+
             # TODO Test, if texture exists!!!
             # assign every needed material to faces
             for isrf, surface in enumerate(surf_array):
                 polygon = me.polygons[isrf]
                 polygon.material_index = surf_material[isrf]
                 currenttexture = matList[surf_material[isrf]].lower()
-                textureSize = bpy.data.images[currenttexture].size
+                try:
+                    textureSize = bpy.data.images[currenttexture].size
+                except:
+                    textureSize = (64,64)
                 # add uv data
                 for jsrf, loop in enumerate(uv_indices[isrf]):
                     u = float(uvArray[uv_indices[isrf][jsrf]][0])
@@ -442,7 +455,7 @@ class Thing:
                 bpy.context.scene.collection.objects.link(empty)
                 empty.empty_display_size = 1
                 empty.empty_display_type = 'PLAIN_AXES'
-                empty.location = (mesh[8] + self.xOffs, mesh[9] + self.yOffs, mesh[10] + self.zOffs)
+                empty.location = (float(mesh[8]) + self.xOffs, float(mesh[9]) + self.yOffs, float(mesh[10]) + self.zOffs)
                 obj_list.insert(i, empty)
             else:
                 pass
@@ -475,8 +488,3 @@ class Thing:
     def __str__(self):
         return self.name
 
-
-    #   return {'FINISHED'}
-
-    
-#import_3do("at.3do")
