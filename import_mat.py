@@ -112,8 +112,10 @@ class Mat:
             mat = bpy.data.materials.new(name=name)
             mat.use_nodes = True
             bsdf = mat.node_tree.nodes["Principled BSDF"]
-            bsdf.inputs[5].default_value = 0.0      # Specular
-            bsdf.inputs[7].default_value = 1.0      # Roughness
+            mat.node_tree.nodes.remove(bsdf)
+            output = mat.node_tree.nodes["Material Output"]
+            # bsdf.inputs[5].default_value = 0.0      # Specular
+            # bsdf.inputs[7].default_value = 1.0      # Roughness
             texImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
             
             vertexColor = mat.node_tree.nodes.new('ShaderNodeAttribute')
@@ -129,9 +131,11 @@ class Mat:
             
             texImage.image = image
             texImage.location = -600,250
-            mat.node_tree.links.new(bsdf.inputs['Base Color'], mixColor.outputs['Color'])
+            mat.node_tree.links.new(output.inputs['Surface'], mixColor.outputs['Color'])
             mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
             mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
+
+            mat.node_tree.nodes.delete("Principled BSDF")
 
             if alpha:
                 mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
@@ -141,17 +145,17 @@ class Mat:
             
             # create color MAT
             
-
-            
             mat = bpy.data.materials.new(name=name)
             mat.use_nodes = True
             bsdf = mat.node_tree.nodes["Principled BSDF"]
-            bsdf.inputs[5].default_value = 0.0      # Specular
-            bsdf.inputs[7].default_value = 1.0      # Roughness
+            mat.node_tree.nodes.remove(bsdf)
+            output = mat.node_tree.nodes["Material Output"]
+            # bsdf.inputs[5].default_value = 0.0      # Specular
+            # bsdf.inputs[7].default_value = 1.0      # Roughness
             colorNode = mat.node_tree.nodes.new('ShaderNodeRGB')
             r = cmp[64+(colornum*3)]/255
             g = cmp[65+(colornum*3)]/255
             b = cmp[66+(colornum*3)]/255
             colorNode.outputs[0].default_value = (r,g,b,1)
             colorNode.location = -400,250
-            mat.node_tree.links.new(bsdf.inputs['Base Color'], colorNode.outputs['Color'])
+            mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])

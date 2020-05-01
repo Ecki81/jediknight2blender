@@ -292,8 +292,6 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         level_materials.append(mat_name_list[int(position)])
 
 
-    # TODO: if material in material_list == -1, then material = __portal
-
     # read in sectors ##################################################
     
     # scPos = 0
@@ -323,10 +321,12 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         mat = bpy.data.materials.new(placeholder_name)
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
+        mat.node_tree.nodes.remove(bsdf)
+        output = mat.node_tree.nodes["Material Output"]
         colorNode = mat.node_tree.nodes.new('ShaderNodeRGB')
         colorNode.outputs[0].default_value = (1.0,0.0,1.0,1)      # magenta
         colorNode.location = -400,250
-        mat.node_tree.links.new(bsdf.inputs['Base Color'], colorNode.outputs['Color'])
+        mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])
 
     placeholder_mat('__portal')
 
@@ -355,10 +355,14 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         thingsCount= re.compile(r"World things\s(\d+)")
 
         templatesline = 0
+        tempCount = 0
         for line in lines:
             templatesline += 1
             if templatesCount.search(line):
-                print('templates starting at line ' + str(templatesline))      # line position to start parsing for things
+                tempString = re.split("\s", line, 2)
+                tempCount = int(tempString[-1])
+                print('templates starting at line', templatesline, ",", tempCount, "templates")      # line position to start parsing for things
+                break
         
         # read in templates ################################################
         #   TODO: MotS re                                                  #
@@ -367,9 +371,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         
         #                          num   template  name      x              y             z             pitch         yaw           roll         sector            thingflag
         thingsList = []
-        things_names = {}
         thingsEx = re.compile("(\d+)\:\s(\S+)\s+(\S+)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(\d+)")
-        for line in lines:
+        for i, line in enumerate(lines):
             match = thingsEx.search(line)
             if match:
                 thingtransforms = []
@@ -397,12 +400,19 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 Sector = match.group(10)
                 thingsList.append(thingtransforms)
                 del thingtransforms
-        
+
+
+
+        things_names = {}
         for mesh in thingsList:
             try:
                 thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
-                thing.import_Thing()
-                things_names[mesh[0][:-4]] = thing.name # fill dictionary with object file names and its corresponding JK ingame names
+                if mesh[0] in things_names:
+                    obj_copy = thing.copy_Thing(things_names[mesh[0]])
+                else:
+                    obj = thing.import_Thing()
+                things_names[mesh[0]] = obj # fill dictionary with object file names and obj pointers
+                # print(things_names)
             except:
                 pass
                 # print("couldn't import mesh " + mesh[0])
@@ -415,7 +425,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     # create the mesh ##################################################
 
-    def create_Mesh (verts, edges):
+    def create_Level(verts, edges):
         # Create mesh and object
         me = bpy.data.meshes.new(name+'Mesh')
         ob = bpy.data.objects.new(name, me)
@@ -497,7 +507,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     ######################################################################
 
-    create_Mesh(vertArray, surf_list)
+    create_Level(vertArray, surf_list)
     print("created level " + name)
 
 

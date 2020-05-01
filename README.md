@@ -27,6 +27,9 @@ Depending on your hardware, it may take the script a while to import files large
 - [x] place 3do in levels
 - [x] texturing levels
 - [x] texturing 3do
-- [ ] resolve 3do hierarchy and parenting
+- [x] resolve 3do hierarchy and parenting
 - [ ] parse GOB/GOO
  
+
+
+_Sorry about the messy code, this is my first real programming project and still wip_ :P

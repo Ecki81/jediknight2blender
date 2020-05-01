@@ -16,7 +16,8 @@ class Thing:
         self.pitchOffs = pitch
         self.yawOffs = yaw
         self.rollOffs = roll
-        self.name = ""
+        path = pathlib.Path(self.file)
+        self.name = str(path.parts[-1])
         self.scale = scale
 
 
@@ -32,22 +33,17 @@ class Thing:
                 transf[0] = transf[0] + float(hierarchy[node][8])           # loc
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                print("    has parent", node_name, float(hierarchy[parent][8]))
                 has_parent(parent, transf)
             else:                                                           # If it is the root
                 transf[0] = transf[0] + float(hierarchy[node][8])           # loc
                 transf[1] = transf[1] + float(hierarchy[node][9])
                 transf[2] = transf[2] + float(hierarchy[node][10])
-                print("   ", hierarchy[node][-1], "is the root", float(hierarchy[parent][8]))
-                return transf
             return transf
 
         for i, line in enumerate(hierarchy):
             new_hierarchy_line = []
             node_text = line[-1]
             default_transforms = [0.0, 0.0, 0.0]
-            last = False
-            print(node_text, line[8])
             new_transforms = has_parent(i, default_transforms)
             for j, element in enumerate(line):
                 if j == 8:
@@ -61,8 +57,6 @@ class Thing:
                 new_hierarchy_line.append(element)
             new_hierarchy.append(new_hierarchy_line)
 
-        for line in new_hierarchy:
-            print(line)
 
         return new_hierarchy
 
@@ -74,8 +68,6 @@ class Thing:
         lines=f.readlines()  # store the entire file in a variable
         f.close()
 
-        #filepath = re.split("/", filename)
-        #name = filepath[-1].replace(".3do", "")
 
         motsflag = True
         path = pathlib.Path(self.file)
@@ -249,7 +241,7 @@ class Thing:
                 if int(node[3]) != midx:
                     pass
                 else:
-                    self.name = node[17]
+                    mesh_name = node[17]
                     x = float(node[8])* self.scale
                     y = float(node[9])* self.scale
                     z = float(node[10]) * self.scale
@@ -366,8 +358,8 @@ class Thing:
             # create the mesh ##################################################
 
             # Create mesh and object
-            me = bpy.data.meshes.new(self.name+'Mesh')
-            ob = bpy.data.objects.new(self.name, me)
+            me = bpy.data.meshes.new(mesh_name+'Mesh')
+            ob = bpy.data.objects.new(mesh_name, me)
             ob.show_name = False
 
             obj_list.append(ob)
@@ -477,13 +469,22 @@ class Thing:
         obj_list[0].rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
         obj_list[0].rotation_euler.rotate_axis("X", radians(self.pitchOffs))
         obj_list[0].rotation_euler.rotate_axis("Y", radians(self.rollOffs))
+
+        return obj_list[0]
         
 
-    def copy_Thing(self):
+    def copy_Thing(self, obj):
         '''takes Thing mesh, returns copied Thing'''
-        path = pathlib.Path(self.file)
-        obj_string = path.parts[-1]
-        print("object", obj_string, "with name", self.name, "is already existing.")
+
+        print("copying object" , obj)
+
+        obj_copy = bpy.data.objects.new(self.name, obj.data)
+        bpy.context.scene.collection.objects.link(obj_copy)
+        obj_copy.location = (self.xOffs, self.yOffs, self.zOffs)
+        obj_copy.rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
+        obj_copy.rotation_euler.rotate_axis("X", radians(self.pitchOffs))
+        obj_copy.rotation_euler.rotate_axis("Y", radians(self.rollOffs))
+        return obj_copy
 
     def __str__(self):
         return self.name
