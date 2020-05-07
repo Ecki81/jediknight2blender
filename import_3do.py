@@ -456,19 +456,25 @@ class Thing:
         bpy.context.view_layer.update()                     # update all object matrices
 
         for i, mesh in enumerate(hier_array):
-            parent_no = int(mesh[4])
-            if parent_no != -1:
+            parent_index = int(mesh[4])
+            if parent_index != -1:
                 child = obj_list[i]
                 matrixcopy = child.matrix_world.copy()
-                parent = obj_list[int(parent_no)]
+                parent = obj_list[int(parent_index)]
                 child.parent = parent
                 child.matrix_world = matrixcopy
+                
+                #                  (yaw(z) pitch(x) roll(y))
+                child.rotation_euler.rotate_axis("Z", radians(float(mesh[12])))
+                child.rotation_euler.rotate_axis("X", radians(float(mesh[11])))
+                child.rotation_euler.rotate_axis("Y", radians(float(mesh[13])))
+                print(child)
             else:
-                pass
+                pass        
 
         obj_list[0].rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
         obj_list[0].rotation_euler.rotate_axis("X", radians(self.pitchOffs))
-        obj_list[0].rotation_euler.rotate_axis("Y", radians(self.rollOffs))
+        obj_list[0].rotation_euler.rotate_axis("Y", radians(self.rollOffs))             
 
         return obj_list[0]
         
@@ -476,7 +482,7 @@ class Thing:
     def copy_Thing(self, obj):
         '''takes Thing mesh, returns copied Thing'''
 
-        print("copying object" , obj)
+        # print("copying object" , obj)
 
         obj_copy = bpy.data.objects.new(self.name, obj.data)
         bpy.context.scene.collection.objects.link(obj_copy)

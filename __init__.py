@@ -254,7 +254,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         surf_intensities = []
         i+=1
 
-    print(alpha_mats)
+    # print(alpha_mats)
 
     # read in materials ################################################
     # TODO find better ways to terminate at end of material list
@@ -271,6 +271,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             matLine = re.split("\s+", lines[i+mcPos+1],)
         mat_list.append(matLine[1])
         if matLine[0] != "end":
+            pass
             mat_tiling_tuple = (float(matLine[2]), float(matLine[3]))
             mat_tiling_list.append(mat_tiling_tuple)
         else:
@@ -341,9 +342,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             except:
                 try:
                     Mat.importMat(matpath / material, cmppath / colormap, alpha)
-                except:
+                except:                                # most materials are correctly loaded, but except is still called...
                     placeholder_mat(material)
-                    print("couldn't import " + material + ". created placeholder mat") 
+                    print("couldn't import " + material + ". created placeholder mat")
 
     else:
         print("skipped material import")
@@ -354,16 +355,39 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         templatesCount = re.compile(r"World templates\s(\d+)")
         thingsCount= re.compile(r"World things\s(\d+)")
 
-        templatesline = 0
-        tempCount = 0
-        for line in lines:
-            templatesline += 1
-            if templatesCount.search(line):
-                tempString = re.split("\s", line, 2)
-                tempCount = int(tempString[-1])
-                print('templates starting at line', templatesline, ",", tempCount, "templates")      # line position to start parsing for things
-                break
+        # templates_line = 0
+        # tempCount = 0
+        # for line in lines:
+        #     templates_line += 1
+        #     if templatesCount.search(line):
+        #         tempString = re.split("\s", line, 2)
+        #         tempCount = int(tempString[-1])
+        #         # print('templates starting at line', templates_line, ",", tempCount, "templates")      # line position to start parsing for things
+        #         break
         
+        # if motsflag:
+        #     templates_line += 1
+        # else:
+        #     templates_line += 2
+        
+        # templates = []
+
+        # for i in range(templates_line, templates_line + tempCount, 1):
+        #     templates_line = re.split("\s+", lines[i][:-1], 2)                # split into | #Name: | Based On: | Params: |
+        #     params_string = re.split("\s", templates_line[2])                   # split Params: into separate elements
+
+        #     templates_line[2] = params_string
+        #     templates.append(templates_line)
+        #     # print(templates_line)
+
+
+        # threedo_ex = re.compile("model3d=(\S+\.3do)")
+        # for template in templates:
+        #     for param in template[2]:
+        #         match = threedo_ex.search(param)
+        #         if match:
+        #             print(template[0], ":", match.group(1), "....FOUND!!!")
+
         # read in templates ################################################
         #   TODO: MotS re                                                  #
         #   x, y, z, pitch, yaw and roll can also be single digits (0)     #
@@ -403,19 +427,24 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
 
 
+        copy_flag = False
+
         things_names = {}
         for mesh in thingsList:
             try:
-                thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
-                if mesh[0] in things_names:
-                    obj_copy = thing.copy_Thing(things_names[mesh[0]])
+                if copy_flag:
+                    thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
+                    if mesh[0] in things_names:
+                        obj_copy = thing.copy_Thing(things_names[mesh[0]])
+                        print(obj_copy, " <-> ", mesh[0])
+                    else:
+                        obj = thing.import_Thing()
+                    things_names[mesh[0]] = obj # fill dictionary with object file names and obj pointers
                 else:
-                    obj = thing.import_Thing()
-                things_names[mesh[0]] = obj # fill dictionary with object file names and obj pointers
-                # print(things_names)
+                    thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
+                    thing.import_Thing()
             except:
                 pass
-                # print("couldn't import mesh " + mesh[0])
         
     else:
         print("thing parser skipped")
@@ -551,7 +580,7 @@ class ImportJKLfile(Operator, ImportHelper):
     )
 
     import_intensities: BoolProperty(
-        name="Light Intensities",
+        name="Vertex Lighting",
         description="Imports jkl light intensities as vertex color information. Vertex colors are added to material via multiplier node",
         default=False,
     )
