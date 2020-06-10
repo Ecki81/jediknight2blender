@@ -88,104 +88,86 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             break
         parent += 1
 
-    scale = scale * 10.0
+    scale = scale * 10.0            # factor for real world scale in blender
 
-    # would normally load the data here
-    # get the vertex count ##########################################
+    # get required SECTION positions in jkl ############################
 
-    vcPos = 0
-    vertexCount = 0
-    i=0
-    while i < len(lines):
-        i+=1
-        if re.search("World vertices ",lines[i],re.I)!=None:
-            vcString = re.split("\s", lines[i], 2)
-            vertexCount = int(vcString[2])
-            vcPos = i+1
+    world_materials_regex = re.compile(r"World materials\s(\d+)")
+    world_colormaps_regex = re.compile(r"World Colormaps\s(\d+)")
+    world_vertices_regex = re.compile(r"World vertices\s(\d+)")
+    world_uvs_regex = re.compile(r"World texture vertices\s(\d+)")
+    world_adjoins_regex = re.compile(r"World adjoins\s(\d+)")
+    world_surfaces_regex = re.compile(r"World surfaces\s(\d+)")
+    world_templates_regex = re.compile(r"World templates\s(\d+)")
+    world_things_regex = re.compile(r"World things\s(\d+)")
+
+
+    # variable_section = [line position, variable count]
+
+    materials_section = [0,0]
+    colormaps_section = [0,0]
+    vertices_section = [0,0]
+    uvs_section = [0,0]
+    adjoins_section = [0,0]
+    surfaces_section = [0,0]
+    templates_section = [0,0]
+    things_section = [0,0]
+
+    for pos, line in enumerate(lines):
+        match_materials_section = world_materials_regex.search(line)
+        match_colormaps_section = world_colormaps_regex.search(line)
+        match_vertices_section = world_vertices_regex.search(line)
+        match_uvs_section = world_uvs_regex.search(line)
+        match_adjoins_section = world_adjoins_regex.search(line)
+        match_surfaces_section = world_surfaces_regex.search(line)
+        match_templates_section = world_templates_regex.search(line)
+        match_things_section = world_things_regex.search(line)
+        if match_materials_section:
+            materials_section = [pos+1 , int(match_materials_section.group(1))]
+        elif match_colormaps_section:
+            colormaps_section = [pos+1 , int(match_colormaps_section.group(1))]
+        elif match_vertices_section:
+            vertices_section = [pos+1 , int(match_vertices_section.group(1))]
+        elif match_uvs_section:
+            uvs_section = [pos+1 , int(match_uvs_section.group(1))]
+        elif match_adjoins_section:
+            adjoins_section = [pos+1 , int(match_adjoins_section.group(1))]
+        elif match_surfaces_section:
+            surfaces_section = [pos+1 , int(match_surfaces_section.group(1))]
+        elif match_templates_section:
+            templates_section = [pos+1 , int(match_templates_section.group(1))]
+        elif match_things_section:
+            things_section = [pos+1 , int(match_things_section.group(1))]
             break
 
-
-    # get the uv count ##############################################
-
-    uv_pos = 0
-    uvCount = 0
-    for line_index, line in enumerate(lines):
-        if re.search("World texture vertices ", line, re.I) != None:
-            uvString = re.split("\s", line, 3)
-            uvCount = int(uvString[-1])
-            uv_pos = line_index+1
-            break
-
-
-    # get the surface count #########################################
-
-    scPos = 0
-    surfaceCount = 0
-    i=0
-    while i < len(lines):
-        i+=1
-        if re.search("World surfaces ",lines[i],re.I)!=None:
-            scString = re.split("\s", lines[i], 2)
-            surfaceCount = int(scString[2])
-            scPos = i+1
-            break
-        
-    # get the material count ##########################################
-
-    mcPos = 0
-    materialCount = 0
-    i=0
-    while i < len(lines):
-        i+=1
-        if re.search("World materials ",lines[i],re.I)!=None:
-            mcString = re.split("\s", lines[i], 2)
-            materialCount = int(mcString[2])
-            mcPos = i+1
-            break
-
-    # get the colormaps ##############################################
- 
-    cmcPos = 0
-    colormapCount = 0
-    i=0
-    while i <= len(lines):
-        i+=1
-        if re.search("World Colormaps",lines[i],re.I)!=None:
-            cmcString = re.split("\s", lines[i], 2)
-            colormapCount = int(cmcString[-1])
-            cmcPos = i+1
-            break
-    colormap = re.split("\s+", lines[cmcPos],)
-    colormap = colormap[1]
 
     # read in vertices ###############################################
 
-    vertArray = []  # 2D array with vertices x, y, z
-    #scale = 10.0
+    vert_array = []  # 2D array with vertices x, y, z
 
     i=0
-    while i < int(vertexCount):
+    while i < vertices_section[1]:
         i+=1
-        vertLine=re.split("\s+", lines[i+vcPos], 4)
-        del vertLine[0]
-        del vertLine[3]
-        vertLine[0]=float(vertLine[0]) * scale
-        vertLine[1]=float(vertLine[1]) * scale
-        vertLine[2]=float(vertLine[2]) * scale
-        vertArray.append(vertLine)
+        vert_line=re.split("\s+", lines[i + vertices_section[0]], 4)
+        del vert_line[0]
+        del vert_line[3]
+        vert_line[0]=float(vert_line[0]) * scale
+        vert_line[1]=float(vert_line[1]) * scale
+        vert_line[2]=float(vert_line[2]) * scale
+        vert_array.append(vert_line)
 
     # read in uvs #####################################################
 
-    uvArray = []
+    uv_array = []
     i=0
-    while i < int(uvCount):
+    while i < uvs_section[1]:
         i += 1
-        uv_line = re.split("\s+", lines[i+uv_pos])
+        uv_line = re.split("\s+", lines[i + uvs_section[0]])
         del uv_line[0]
         del uv_line[-1]
         uv_line[0] = float(uv_line[0])
         uv_line[1] = float(uv_line[1])
-        uvArray.append(uv_line)
+        uv_array.append(uv_line)
 
 
     # read in surfaces ################################################
@@ -203,8 +185,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     alpha_mats = []
 
     i=0
-    while i < int(surfaceCount):
-        surfLine=re.split("\s+", lines[i+scPos+1],)
+    while i < surfaces_section[1]:
+        surfLine=re.split("\s+", lines[i + surfaces_section[0] + 1],)
         matId = int(surfLine[1])
         surfflag = int(surfLine[2], base=16)
         faceflag = int(surfLine[3], base=16)
@@ -240,11 +222,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         j = 0
         if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
             while j < nvert*4:
-                surf_intensities.append(float(surfLine[10+nvert+j]))
+                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
                 j+=1
         else:
             while j < nvert:
-                surf_intensities.append(float(surfLine[10+nvert+j]))
+                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
                 j+=1
         surf_intensities_list.append(surf_intensities)
 
@@ -266,9 +248,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     while i < 1000:                                     # only allows for 1000 mat files
         i+=1
         if motsflag:
-            matLine = re.split("\s+", lines[i+mcPos],)
+            matLine = re.split("\s+", lines[i + materials_section[0]],)
         else:
-            matLine = re.split("\s+", lines[i+mcPos+1],)
+            matLine = re.split("\s+", lines[i + materials_section[0] + 1],)
         mat_list.append(matLine[1])
         if matLine[0] != "end":
             pass
@@ -293,47 +275,26 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         level_materials.append(mat_name_list[int(position)])
 
 
-    # read in sectors ##################################################
-    
-    # scPos = 0
-    # surfaceCount = 0
-    # i=0
-    # while i < len(lines):
-    #     i+=1
-    #     if re.search("World surfaces ",lines[i],re.I)!=None:
-    #         scString = re.split("\s", lines[i], 2)
-    #         surfaceCount = int(scString[2])
-    #         scPos = i+1
-    #         break
-
-    # sectorrg = re.compile(r"World sectors\s(\w+)")
-
-    # for line in lines:
-    #     m = sectorrg.search(line)
-    #     if m:
-    #         sectorCount = m.group(1)
-    #         print("sector count: " + sectorCount)
-
-    # read in array of sector centers
-
     # create portal material ################################################
 
-    def placeholder_mat(placeholder_name):
+    def placeholder_mat(placeholder_name, color):
         mat = bpy.data.materials.new(placeholder_name)
         mat.use_nodes = True
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         mat.node_tree.nodes.remove(bsdf)
         output = mat.node_tree.nodes["Material Output"]
         colorNode = mat.node_tree.nodes.new('ShaderNodeRGB')
-        colorNode.outputs[0].default_value = (1.0,0.0,1.0,1)      # magenta
+        colorNode.outputs[0].default_value = color      
         colorNode.location = -400,250
         mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])
 
-    placeholder_mat('__portal')
+    placeholder_mat('__portal', (0.065,0.431,0.178,1))      # mint green, (unused in star wars design, contrasts with active blender colors)
 
     # call material loading class ###########################################
     
     alpha = importAlpha
+    colormap = re.split("\s+", lines[colormaps_section[0]],)
+    colormap = colormap[1]
 
     if importMats:
         for material in mat_list:
@@ -343,7 +304,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 try:
                     Mat.importMat(matpath / material, cmppath / colormap, alpha)
                 except:                                # most materials are correctly loaded, but except is still called...
-                    placeholder_mat(material)
+                    placeholder_mat(material, (1.0,0.0,1.0,1))
                     print("couldn't import " + material + ". created placeholder mat")
 
     else:
@@ -352,51 +313,16 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     # read in things option       #########################################
 
     if importThings:
-        templatesCount = re.compile(r"World templates\s(\d+)")
-        thingsCount= re.compile(r"World things\s(\d+)")
-
-        # templates_line = 0
-        # tempCount = 0
-        # for line in lines:
-        #     templates_line += 1
-        #     if templatesCount.search(line):
-        #         tempString = re.split("\s", line, 2)
-        #         tempCount = int(tempString[-1])
-        #         # print('templates starting at line', templates_line, ",", tempCount, "templates")      # line position to start parsing for things
-        #         break
         
-        # if motsflag:
-        #     templates_line += 1
-        # else:
-        #     templates_line += 2
-        
-        # templates = []
-
-        # for i in range(templates_line, templates_line + tempCount, 1):
-        #     templates_line = re.split("\s+", lines[i][:-1], 2)                # split into | #Name: | Based On: | Params: |
-        #     params_string = re.split("\s", templates_line[2])                   # split Params: into separate elements
-
-        #     templates_line[2] = params_string
-        #     templates.append(templates_line)
-        #     # print(templates_line)
-
-
-        # threedo_ex = re.compile("model3d=(\S+\.3do)")
-        # for template in templates:
-        #     for param in template[2]:
-        #         match = threedo_ex.search(param)
-        #         if match:
-        #             print(template[0], ":", match.group(1), "....FOUND!!!")
-
         # read in templates ################################################
         #   TODO: MotS re                                                  #
         #   x, y, z, pitch, yaw and roll can also be single digits (0)     #
         #   instead of a number noted as float (0.0000000)
         
         #                          num   template  name      x              y             z             pitch         yaw           roll         sector            thingflag
-        thingsList = []
+        things_list = []
         thingsEx = re.compile("(\d+)\:\s(\S+)\s+(\S+)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(\d+)")
-        for i, line in enumerate(lines):
+        for line in lines[things_section[0]+1:things_section[0]+things_section[1]+3]:
             match = thingsEx.search(line)
             if match:
                 thingtransforms = []
@@ -404,7 +330,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 template =  match.group(2)
                 tempName = match.group(3)
                 templateEx = re.compile("^" + tempName + "\s+\w+\s+.*?model3d=(\S+\.3do).*$")     ####   ^.*\b(one|two|three)\b.*$
-                for line in lines:                                            ####
+                for line in lines[templates_section[0]+1:templates_section[0]+templates_section[1]+3]:                                            ####
                     found = templateEx.search(line)                           ####    experimental
                     if found:                                                 ####
                         tempName = found.group(1)                             ####
@@ -422,24 +348,21 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 thingRoll = match.group(9)
                 thingtransforms.append(thingRoll)
                 Sector = match.group(10)
-                thingsList.append(thingtransforms)
+                things_list.append(thingtransforms)
                 del thingtransforms
 
-
-
-        copy_flag = False
+        copy_flag = True
 
         things_names = {}
-        for mesh in thingsList:
+        for mesh in things_list:
             try:
                 if copy_flag:
                     thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
                     if mesh[0] in things_names:
                         obj_copy = thing.copy_Thing(things_names[mesh[0]])
-                        print(obj_copy, " <-> ", mesh[0])
                     else:
                         obj = thing.import_Thing()
-                    things_names[mesh[0]] = obj # fill dictionary with object file names and obj pointers
+                        things_names[mesh[0]] = obj # fill dictionary with object file names and blender objects
                 else:
                     thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
                     thing.import_Thing()
@@ -508,8 +431,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
 
             for jsrf, loop in enumerate(uv_indices[isrf]):
-                u = float(uvArray[uv_indices[isrf][jsrf]][0])/texture_size[0]
-                v = float(uvArray[uv_indices[isrf][jsrf]][1])/-texture_size[1]
+                u = float(uv_array[uv_indices[isrf][jsrf]][0])/texture_size[0]
+                v = float(uv_array[uv_indices[isrf][jsrf]][1])/-texture_size[1]
                 x_tile = tiling[0]                                                  # what's that for? multiplication for size? addition for translation?
                 y_tile = tiling[1]
                 uvMap.data[polygon.loop_indices[jsrf]].uv = (u, v)
@@ -536,7 +459,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     ######################################################################
 
-    create_Level(vertArray, surf_list)
+    create_Level(vert_array, surf_list)
     print("created level " + name)
 
 

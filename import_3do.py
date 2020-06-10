@@ -468,7 +468,7 @@ class Thing:
                 child.rotation_euler.rotate_axis("Z", radians(float(mesh[12])))
                 child.rotation_euler.rotate_axis("X", radians(float(mesh[11])))
                 child.rotation_euler.rotate_axis("Y", radians(float(mesh[13])))
-                print(child)
+                # print(child)
             else:
                 pass        
 
