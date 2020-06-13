@@ -6,7 +6,7 @@ import pathlib
 class Mat:
     def __init__(self, mat, cmp):
         '''
-        initializes a material, takes material file name and palette file name
+        initializes a material, takes material file name and palette file name (currently unused)
         '''
         self.mat = mat
         self.cmp = cmp
@@ -17,24 +17,11 @@ class Mat:
     def __str__(self):
         print(self.mat, self.cmp)
 
-    def importMat(matfile, cmpfile, alpha):
+    def importMat(mat, cmp, alpha, name):
         '''
         reads an image from a JK mat file and its corresponding cmp file and returns a material with diffuse map
         '''
-
-        palettefile=cmpfile
-        imagefile = matfile
-
-        f=open(palettefile,'rb') # open file for reading
-        f.seek(0)
-        cmp = f.read()
-
-        fullpath = pathlib.Path(matfile)
-        name = fullpath.parts[-1].replace(".mat", "")
-
-        f=open(imagefile,'rb') # open file for reading
-        f.seek(0)
-        mat = f.read()
+        name = name.lower().replace(".mat", "")
 
         # unpack uint32 from 4 bytes
 
@@ -55,12 +42,11 @@ class Mat:
         
         if NumOfTextures > 1:
             size_offset = 10*4*(NumOfTextures-1)
+            pixel_offset = size_offset #-sizeX
 
         sizeX = unpack("L", mat[116+size_offset:120+size_offset])[0]
         sizeY = unpack("L", mat[120+size_offset:124+size_offset])[0]
         
-        if NumOfTextures > 1:
-            pixel_offset = size_offset #-sizeX
 
         numMipMaps = unpack("L", mat[136:140])[0]  #NumMipMaps
 
@@ -111,6 +97,7 @@ class Mat:
 
             mat = bpy.data.materials.new(name=name)
             mat.use_nodes = True
+            mat.use_backface_culling = False
             bsdf = mat.node_tree.nodes["Principled BSDF"]
             mat.node_tree.nodes.remove(bsdf)
             output = mat.node_tree.nodes["Material Output"]

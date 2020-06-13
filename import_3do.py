@@ -1,11 +1,10 @@
 import re
 import bpy, bmesh
 from math import *
-import pathlib
 
 class Thing:
 
-    def __init__(self, file, x, y, z, pitch, yaw, roll, scale):
+    def __init__(self, file, x, y, z, pitch, yaw, roll, scale, name, motsflag):
         '''
         Initializes a Thing with name (filename.3do), xyz position and rotation offset
         '''
@@ -16,13 +15,13 @@ class Thing:
         self.pitchOffs = pitch
         self.yawOffs = yaw
         self.rollOffs = roll
-        path = pathlib.Path(self.file)
-        self.name = str(path.parts[-1])
+        self.name = name
         self.scale = scale
+        self.motsflag = motsflag
 
 
     def tree(self, hierarchy):
-        '''reads in hierarchy, returns with absolute x, y, z transforms'''
+        '''reads in hierarchy, returns absolute x, y, z transforms'''
 
         new_hierarchy = []
 
@@ -64,19 +63,11 @@ class Thing:
     def import_Thing(self):
         '''read in and build 3do mesh'''
         # import_3do(self.name, self.x, self.y, self.z, self.pitch, self.yaw, self.roll)
-        f=open(self.file,'r') # open file for reading
-        lines=f.readlines()  # store the entire file in a variable
-        f.close()
 
+        ungobed_string = self.file.decode("utf-8")
+        lines = re.split('\n', ungobed_string)
+        del ungobed_string
 
-        motsflag = True
-        path = pathlib.Path(self.file)
-        if path.parts[-3] == "JKMRES":
-            motsflag = True
-            # print("motsflag true")
-        else:
-            motsflag = False
-            # print("motsflag false")
 
         # get the number of materials #######################################
 
@@ -98,7 +89,7 @@ class Thing:
         matList = []
         while i < materialCount:
 
-            if motsflag:
+            if self.motsflag:
                 matLine = re.split("\s+", lines[i+matPos],)
                 matLine[1] = matLine[1].replace(".MAT", "")          # :P
                 matList.append(matLine[1].replace(".mat", ""))
@@ -156,7 +147,7 @@ class Thing:
 
         i=0
         while i < hierarchy_nodes:
-            if motsflag:
+            if self.motsflag:
                 hier_line=re.split("\s+", lines[i+hiPos])
                 del hier_line[-1]
             else:
@@ -262,7 +253,7 @@ class Thing:
             while i < int(vertex_count):
                 vert_line=""
                 
-                if motsflag:
+                if self.motsflag:
                     vert_line=re.split("\s+", lines[i+vc_pos+1])
                     del vert_line[0]
                     del vert_line[3]
@@ -299,7 +290,7 @@ class Thing:
             i=0
             while i < int(uvCount):
                 uvLine=""
-                if motsflag:
+                if self.motsflag:
                     uvLine=re.split("\s+", lines[i+uvPos])
                     del uvLine[0]
                     del uvLine[-1]
@@ -326,7 +317,7 @@ class Thing:
                 surfLine=""
                 verts=0
 
-                if motsflag:
+                if self.motsflag:
                     surfLine=re.split("\s+|,", lines[i+scPos+1])
                     verts=int(surfLine[7])
                 else:
@@ -482,10 +473,13 @@ class Thing:
     def copy_Thing(self, obj):
         '''takes Thing mesh, returns copied Thing'''
 
-        # print("copying object" , obj)
 
         obj_copy = bpy.data.objects.new(self.name, obj.data)
         bpy.context.scene.collection.objects.link(obj_copy)
+        for child in obj.children:
+            child_copy = bpy.data.objects.new(child.name, child.data)
+            bpy.context.scene.collection.objects.link(child_copy)
+            child_copy.parent = obj_copy
         obj_copy.location = (self.xOffs, self.yOffs, self.zOffs)
         obj_copy.rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
         obj_copy.rotation_euler.rotate_axis("X", radians(self.pitchOffs))

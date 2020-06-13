@@ -42,6 +42,7 @@ import sys
 from struct import *
 from .import_3do import Thing
 from .import_mat import Mat
+from .import_gob import Gob
 import pathlib
 
 # ImportHelper is a helper class, defines filename and
@@ -52,6 +53,7 @@ from bpy.types import Operator
 
 
 def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale):
+    '''takes jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
     print("reading jkl data file...")
     f = open(filename, 'r')
     lines=f.readlines()  # store the entire file in a variable 
@@ -62,28 +64,31 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     path = pathlib.Path(filename)
 
-    meshpath = pathlib.Path('')
-    matpath = pathlib.Path('')
-    thingmatpath = pathlib.Path('')
-    cmppath = pathlib.Path('')
+    mesh_path = pathlib.Path('')
+    mat_path = pathlib.Path('')
+    thing_mat_path = pathlib.Path('')
+    cmp_path = pathlib.Path('')
+    gob_path = pathlib.Path('')
 
     parent = 0
 
     motsflag = True
     for folder in path.parts[::-1]:
- 
+        
         if folder == "Star Wars Jedi Knight - Dark Forces 2":
-            meshpath = path.parents[parent-1].joinpath('Resource', 'Res2', '3do')
-            matpath = path.parents[parent-1].joinpath('Resource', 'Res2', 'mat')
-            thingmatpath = path.parents[parent-1].joinpath('Resource', 'Res2', '3do', 'mat')
-            cmppath = path.parents[parent-1].joinpath('Resource', 'Res2', 'misc', 'cmp')
+            mesh_path = path.parents[parent-1].joinpath('Resource', 'Res2', '3do')
+            mat_path = path.parents[parent-1].joinpath('Resource', 'Res2', 'mat')
+            thing_mat_path = path.parents[parent-1].joinpath('Resource', 'Res2', '3do', 'mat')
+            cmp_path = path.parents[parent-1].joinpath('Resource', 'Res2', 'misc', 'cmp')
+            gob_path = path.parents[parent-1].joinpath('Resource')
             motsflag = False
             break
         if folder == "Star Wars Jedi Knight - Mysteries of the Sith":
-            meshpath = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do')
-            matpath = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'mat')
-            thingmatpath = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do', 'mat')
-            cmppath = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'misc', 'cmp')
+            mesh_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do')
+            mat_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'mat')
+            thing_mat_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do', 'mat')
+            cmp_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'misc', 'cmp')
+            gob_path = path.parents[parent-1].joinpath('Resource')
             motsflag = True
             break
         parent += 1
@@ -182,7 +187,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     uv_index_list = []
     material_indices = []
 
-    alpha_mats = []
+    alpha_mats_ids = []
+    alpha_mats = {}
 
     i=0
     while i < surfaces_section[1]:
@@ -206,10 +212,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         material_indices.append(matId)
 		
         if adjoin > -1 and matId > -1:
-            alpha_mats.append(matId)
-            alpha_mats = sorted(set(alpha_mats))
+            alpha_mats_ids.append(matId)
+            alpha_mats_ids = sorted(set(alpha_mats_ids))
 
         j = 0
+
         while j < nvert:
             v_index  = re.split(",",surfLine[j+10])
             surf_vertices.append(int(v_index[0]))                       
@@ -222,11 +229,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         j = 0
         if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
             while j < nvert*4:
-                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
                 j+=1
         else:
             while j < nvert:
-                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
                 j+=1
         surf_intensities_list.append(surf_intensities)
 
@@ -236,33 +243,32 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         surf_intensities = []
         i+=1
 
-    # print(alpha_mats)
 
     # read in materials ################################################
     # TODO find better ways to terminate at end of material list
 
     i=0
-    matLine = ""
+    mat_line = ""
     mat_list = []
     mat_tiling_list = []
     while i < 1000:                                     # only allows for 1000 mat files
         i+=1
         if motsflag:
-            matLine = re.split("\s+", lines[i + materials_section[0]],)
+            mat_line = re.split("\s+", lines[i + materials_section[0]],)
         else:
-            matLine = re.split("\s+", lines[i + materials_section[0] + 1],)
-        mat_list.append(matLine[1])
-        if matLine[0] != "end":
+            mat_line = re.split("\s+", lines[i + materials_section[0] + 1],)
+        mat_list.append(mat_line[1].lower())
+        if mat_line[0] != "end":
             pass
-            mat_tiling_tuple = (float(matLine[2]), float(matLine[3]))
+            mat_tiling_tuple = (float(mat_line[2]), float(mat_line[3]))
             mat_tiling_list.append(mat_tiling_tuple)
         else:
             break
-        if matLine[0] == "end":
+        if mat_line[0] == "end":
             break
 
     
-    # get a material name list, for object appliance
+    # get a material name list, for object application
 
     mat_name_list = []                                  # every material in jkl w/o file extension *.mat
     for material in mat_list:
@@ -273,6 +279,10 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     material_list = sorted(set(material_indices))       # level mat indices, removed duplicates and sorted in ascending order
     for position in material_list:
         level_materials.append(mat_name_list[int(position)])
+    for position in alpha_mats_ids:
+        alpha_mats[mat_name_list[int(position)] + ".mat"] = "alpha"
+
+    print(alpha_mats)
 
 
     # create portal material ################################################
@@ -288,7 +298,15 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         colorNode.location = -400,250
         mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])
 
-    placeholder_mat('__portal', (0.065,0.431,0.178,1))      # mint green, (unused in star wars design, contrasts with active blender colors)
+    placeholder_mat('__portal', (0.0,0.8,0.0,1))      # green (underused in star wars design, contrasts with active blender colors)
+
+    # load GOB, if neccessary ###############################################
+
+    if importMats or importThings:
+        if motsflag:
+            gob = Gob(gob_path.joinpath("JKMRES.GOO"))
+        else:
+            gob = Gob(gob_path.joinpath("Res2.gob"))
 
     # call material loading class ###########################################
     
@@ -296,16 +314,20 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     colormap = re.split("\s+", lines[colormaps_section[0]],)
     colormap = colormap[1]
 
+
+
     if importMats:
         for material in mat_list:
+            if material in alpha_mats and alpha:
+                alpha = True
+                print(material, "has alpha channel")
+            else:
+                alpha = False
             try:
-                Mat.importMat(thingmatpath / material, cmppath / colormap, alpha)
+                Mat.importMat(gob.ungob(material), gob.ungob(colormap), alpha, material)
             except:
-                try:
-                    Mat.importMat(matpath / material, cmppath / colormap, alpha)
-                except:                                # most materials are correctly loaded, but except is still called...
-                    placeholder_mat(material, (1.0,0.0,1.0,1))
-                    print("couldn't import " + material + ". created placeholder mat")
+                placeholder_mat(material, (1.0,0.0,1.0,1))
+                print("couldn't import " + material + ". created placeholder mat")
 
     else:
         print("skipped material import")
@@ -355,16 +377,18 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
         things_names = {}
         for mesh in things_list:
+            mesh_name = mesh[0].replace(".3do", "")
             try:
+                ungobed_file = gob.ungob(mesh[0])
                 if copy_flag:
-                    thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
+                    thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale, mesh_name, motsflag)
                     if mesh[0] in things_names:
                         obj_copy = thing.copy_Thing(things_names[mesh[0]])
                     else:
                         obj = thing.import_Thing()
                         things_names[mesh[0]] = obj # fill dictionary with object file names and blender objects
                 else:
-                    thing = Thing(meshpath.joinpath(mesh[0]), float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale)
+                    thing = Thing(mesh_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale, mesh[0].replace(".3do", ""))
                     thing.import_Thing()
             except:
                 pass
@@ -505,7 +529,7 @@ class ImportJKLfile(Operator, ImportHelper):
     import_intensities: BoolProperty(
         name="Vertex Lighting",
         description="Imports jkl light intensities as vertex color information. Vertex colors are added to material via multiplier node",
-        default=False,
+        default=True,
     )
 
     import_alpha: BoolProperty(
