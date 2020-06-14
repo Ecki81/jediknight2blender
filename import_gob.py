@@ -32,10 +32,12 @@ class Gob:
 
     def ungob(self, file):
         '''takes string of file in GOB/GOO ("00tabl.3do"), returns extracted file'''
+        # print("ungob() took \"", file, "\" string")
         self.get_toc()
         file_offset, length = self.toc[file]
-        # print(length)
         file_ungob = self.data[file_offset:file_offset+length]
+
+        # print("returned file" , str(type(file_ungob)))
 
         return file_ungob
 

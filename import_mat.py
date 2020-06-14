@@ -21,7 +21,7 @@ class Mat:
         '''
         reads an image from a JK mat file and its corresponding cmp file and returns a material with diffuse map
         '''
-        name = name.lower().replace(".mat", "")
+        name = name.replace(".mat", "")
 
         # unpack uint32 from 4 bytes
 
@@ -67,7 +67,7 @@ class Mat:
             pixels = [None] * size[0] * size[1]
             for x in range(size[0]):
                 for y in range(size[1]):
-                    # assign RGBA to something useful
+
         # 140: start of image array                 |  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
                     cmp_index = mat[140+pixel_offset+(size[0]*size[1])-((y+1)*size[0]-x)]
                     r = cmp[64+(cmp_index*3)]/255
@@ -97,7 +97,7 @@ class Mat:
 
             mat = bpy.data.materials.new(name=name)
             mat.use_nodes = True
-            mat.use_backface_culling = False
+            mat.use_backface_culling = True
             bsdf = mat.node_tree.nodes["Principled BSDF"]
             mat.node_tree.nodes.remove(bsdf)
             output = mat.node_tree.nodes["Material Output"]

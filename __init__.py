@@ -307,12 +307,13 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             gob = Gob(gob_path.joinpath("JKMRES.GOO"))
         else:
             gob = Gob(gob_path.joinpath("Res2.gob"))
+            print("assigning GOB")
 
     # call material loading class ###########################################
     
     alpha = importAlpha
-    colormap = re.split("\s+", lines[colormaps_section[0]],)
-    colormap = colormap[1]
+    cmp_file = re.split("\s+", lines[colormaps_section[0]],)[1]
+    colormap = gob.ungob(cmp_file.lower())
 
 
 
@@ -324,10 +325,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             else:
                 alpha = False
             try:
-                Mat.importMat(gob.ungob(material), gob.ungob(colormap), alpha, material)
+                Mat.importMat(gob.ungob(material), colormap, alpha, material)
             except:
                 placeholder_mat(material, (1.0,0.0,1.0,1))
-                print("couldn't import " + material + ". created placeholder mat")
+                # print("couldn't import " + material + ". created placeholder mat")
+
 
     else:
         print("skipped material import")
