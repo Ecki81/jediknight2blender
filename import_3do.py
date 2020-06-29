@@ -477,9 +477,10 @@ class Thing:
         obj_copy = bpy.data.objects.new(self.name, obj.data)
         bpy.context.scene.collection.objects.link(obj_copy)
         for child in obj.children:
-            child_copy = bpy.data.objects.new(child.name, child.data)
+            child_copy = child.copy()
             bpy.context.scene.collection.objects.link(child_copy)
             child_copy.parent = obj_copy
+            child_copy.matrix_parent_inverse = child.matrix_parent_inverse.copy()
         obj_copy.location = (self.xOffs, self.yOffs, self.zOffs)
         obj_copy.rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
         obj_copy.rotation_euler.rotate_axis("X", radians(self.pitchOffs))
