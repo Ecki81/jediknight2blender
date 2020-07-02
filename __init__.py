@@ -16,7 +16,7 @@ bl_info = {
     "author" : "Eckhard Seidel",
     "description" : "Load level files from Star Wars Jedi Knight / Mysteries of the Sith (.jkl)",
     "blender" : (2, 81, 0),
-    "version" : (0, 4, 0),
+    "version" : (0, 8, 0),
     "location" : "File > Import > JK/MotS Level (.jkl)",
     "warning" : "",
     "category" : "Import-Export"
@@ -25,15 +25,17 @@ bl_info = {
 
 # version steps:__________________________state__________________
 # read in jkl                             DONE
-# read in 3do                             basic
-# read in mat                             works most of the time (pixel matrix sometimes shifted,
-#                                         TODO: transp, anim, save to resource folder for quick loading)
-# place 3do in levels                     DONE (TODO: implement some caching technique to speed up loading)
+# read in 3do                             DONE
+# read in mat                             DONE
+#                                         TODO: transp, anim)
+# place 3do in levels                     DONE
 # texturing levels                        DONE (not sure about tiling / tile factor)
 # texturing things                        DONE
-# resolve 3do hierarchy and parenting     TODO
-# parse GOB/GOO                           TODO
-# better programming                      TODO, obviously! (better OOP structure ;) )
+# resolve 3do hierarchy and parenting     DONE
+# parse GOB/GOO                           DONE
+# read in template structure              TODO
+# separate into sectors                   TODO
+# 
 
 
 import re
@@ -52,7 +54,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Operator
 
 
-def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale):
+def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale, select_shader):
     '''takes jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
     print("reading jkl data file...")
     f = open(filename, 'r')
@@ -63,31 +65,17 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     name = levelpath[-1].replace(".jkl", "")
 
     path = pathlib.Path(filename)
-
-    mesh_path = pathlib.Path('')
-    mat_path = pathlib.Path('')
-    thing_mat_path = pathlib.Path('')
-    cmp_path = pathlib.Path('')
     gob_path = pathlib.Path('')
 
     parent = 0
 
     motsflag = True
     for folder in path.parts[::-1]:
-        
         if folder == "Star Wars Jedi Knight - Dark Forces 2":
-            mesh_path = path.parents[parent-1].joinpath('Resource', 'Res2', '3do')
-            mat_path = path.parents[parent-1].joinpath('Resource', 'Res2', 'mat')
-            thing_mat_path = path.parents[parent-1].joinpath('Resource', 'Res2', '3do', 'mat')
-            cmp_path = path.parents[parent-1].joinpath('Resource', 'Res2', 'misc', 'cmp')
             gob_path = path.parents[parent-1].joinpath('Resource')
             motsflag = False
             break
         if folder == "Star Wars Jedi Knight - Mysteries of the Sith":
-            mesh_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do')
-            mat_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'mat')
-            thing_mat_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', '3do', 'mat')
-            cmp_path = path.parents[parent-1].joinpath('Resource', 'JKMRES', 'misc', 'cmp')
             gob_path = path.parents[parent-1].joinpath('Resource')
             motsflag = True
             break
@@ -103,6 +91,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     world_uvs_regex = re.compile(r"World texture vertices\s(\d+)")
     world_adjoins_regex = re.compile(r"World adjoins\s(\d+)")
     world_surfaces_regex = re.compile(r"World surfaces\s(\d+)")
+    world_sectors_regex = re.compile(r"World sectors\s(\d+)")
     world_templates_regex = re.compile(r"World templates\s(\d+)")
     world_things_regex = re.compile(r"World things\s(\d+)")
 
@@ -115,6 +104,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     uvs_section = [0,0]
     adjoins_section = [0,0]
     surfaces_section = [0,0]
+    sectors_section = [0,0]
     templates_section = [0,0]
     things_section = [0,0]
 
@@ -125,6 +115,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         match_uvs_section = world_uvs_regex.search(line)
         match_adjoins_section = world_adjoins_regex.search(line)
         match_surfaces_section = world_surfaces_regex.search(line)
+        match_sectors_section = world_sectors_regex.search(line)
         match_templates_section = world_templates_regex.search(line)
         match_things_section = world_things_regex.search(line)
         if match_materials_section:
@@ -139,6 +130,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             adjoins_section = [pos+1 , int(match_adjoins_section.group(1))]
         elif match_surfaces_section:
             surfaces_section = [pos+1 , int(match_surfaces_section.group(1))]
+        elif match_sectors_section:
+            sectors_section = [pos+1 , int(match_sectors_section.group(1))]
         elif match_templates_section:
             templates_section = [pos+1 , int(match_templates_section.group(1))]
         elif match_things_section:
@@ -229,11 +222,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         j = 0
         if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
             while j < nvert*4:
-                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
                 j+=1
         else:
             while j < nvert:
-                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
                 j+=1
         surf_intensities_list.append(surf_intensities)
 
@@ -311,24 +304,27 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     # call material loading class ###########################################
     
-    alpha = importAlpha
     cmp_file = re.split("\s+", lines[colormaps_section[0]],)[1]
     colormap = gob.ungob(cmp_file.lower())
-
-
+    print("colormap:", cmp_file.lower())
+    select_shader
 
     if importMats:
         for material in mat_list:
-            if material in alpha_mats and alpha:
+            material_loaded = material in bpy.data.materials
+            if material in alpha_mats and importAlpha:
                 alpha = True
                 print(material, "has alpha channel")
             else:
                 alpha = False
-            try:
-                Mat.importMat(gob.ungob(material), colormap, alpha, material)
-            except:
-                placeholder_mat(material, (1.0,0.0,1.0,1))
-                # print("couldn't import " + material + ". created placeholder mat")
+            if material_loaded:
+                print(material, "already loaded")
+            else:
+                try:
+                    Mat.importMat(gob.ungob(material), colormap, alpha, material, select_shader)
+                except:
+                    placeholder_mat(material, (1.0,0.0,1.0,1))
+                    # print("couldn't import " + material + ". created placeholder mat")
 
 
     else:
@@ -390,7 +386,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                         obj = thing.import_Thing()
                         things_names[mesh[0]] = obj # fill dictionary with object file names and blender objects
                 else:
-                    thing = Thing(mesh_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale, mesh[0].replace(".3do", ""))
+                    thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), scale, mesh_name, motsflag)
                     thing.import_Thing()
             except:
                 pass
@@ -517,14 +513,14 @@ class ImportJKLfile(Operator, ImportHelper):
     # List of operator properties, the attributes will be assigned
     # to the class instance from the operator settings before calling.
     import_things: BoolProperty(
-        name="Things",
-        description="Level things (.3do meshes) are imported and placed, if found",
+        name="3do meshes",
+        description="Level things (.3do) are imported and placed, if found in .gob",
         default=True,
     )
 
     import_mats: BoolProperty(
         name="Materials",
-        description="Level and thing meshes are textured with materials (.mat), if found",
+        description="Level and thing meshes are textured with materials, if found in .gob",
         default=True,
     )
 
@@ -536,8 +532,8 @@ class ImportJKLfile(Operator, ImportHelper):
 
     import_alpha: BoolProperty(
         name="Transparency",
-        description="Alpha from 1st transparency table in .cmp file.",
-        default=False,
+        description="Alpha from 1st transparency table in .cmp file",
+        default=True,
     )
 
     import_scale: FloatProperty(
@@ -547,16 +543,15 @@ class ImportJKLfile(Operator, ImportHelper):
         min=0.0001,
     )
 
-#
-#   type: EnumProperty(
-#        name="Example Enum",
-#        description="Choose between two items",
-#        items=(
-#            ('OPT_A', "First Option", "Description one"),
-#            ('OPT_B', "Second Option", "Description two"),
-#        ),
-#        default='OPT_A',
-#    )
+    select_shader: EnumProperty(
+        name="Shaders",
+        description="Lighting & material options",
+        items=(
+            ('BSDF', "BSDF material", "BSDF materials with transparency and emission map"),
+            ('VERT', "Vertex lighting", "Sith engine light intensities in vertex color channel, multiplied with textures in shader"),
+        ),
+        default='VERT',
+    )
 
     def draw_import_config(self, context):
         layout = self.layout
@@ -564,17 +559,25 @@ class ImportJKLfile(Operator, ImportHelper):
 
         box.label(text = "JKL Import Options", icon='IMPORT')
         box.prop(self, "import_things")
-        box.prop(self, "import_mats")
-        if self.import_mats:
-            box.prop(self, "import_alpha")
-        box.prop(self, "import_intensities")
         box.prop(self, "import_scale")
+        box.prop(self, "import_mats")
+        transp_row = box.row()
+        light_row = box.row()
+        if self.import_mats:
+            transp_row.enabled = True
+            light_row.enabled = True
+        else:
+            transp_row.enabled = False
+            light_row.enabled = False
+        transp_row.prop(self, "import_alpha")
+        light_row.prop(self, "select_shader")
+        
 
     def draw(self, context):
         self.draw_import_config(context)
 
     def execute(self, context):
-        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale)
+        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader)
 
 
 # Only needed if you want to add into a dynamic menu

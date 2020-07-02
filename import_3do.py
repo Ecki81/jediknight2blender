@@ -473,13 +473,19 @@ class Thing:
     def copy_Thing(self, obj):
         '''takes Thing mesh, returns copied Thing'''
 
+        def copy_recursive(ob, par):
+            ob_copy = ob.copy()
+            ob_copy.parent = par
+            ob_copy.matrix_parent_inverse = ob.matrix_parent_inverse.copy()
+            bpy.context.scene.collection.objects.link(ob_copy)
+            for child in ob.children:
+                copy_recursive(child, ob_copy)
 
-        obj_copy = bpy.data.objects.new(self.name, obj.data)
+        obj_copy = bpy.data.objects.new(obj.name, obj.data)
         bpy.context.scene.collection.objects.link(obj_copy)
         for child in obj.children:
-            child_copy = bpy.data.objects.new(child.name, child.data)
-            bpy.context.scene.collection.objects.link(child_copy)
-            child_copy.parent = obj_copy
+            copy_recursive(child, obj_copy)
+
         obj_copy.location = (self.xOffs, self.yOffs, self.zOffs)
         obj_copy.rotation_euler.rotate_axis("Z", radians(self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
         obj_copy.rotation_euler.rotate_axis("X", radians(self.pitchOffs))
