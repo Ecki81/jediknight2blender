@@ -92,6 +92,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     world_adjoins_regex = re.compile(r"World adjoins\s(\d+)")
     world_surfaces_regex = re.compile(r"World surfaces\s(\d+)")
     world_sectors_regex = re.compile(r"World sectors\s(\d+)")
+    world_models_regex = re.compile(r"World models\s(\d+)")
     world_templates_regex = re.compile(r"World templates\s(\d+)")
     world_things_regex = re.compile(r"World things\s(\d+)")
 
@@ -105,6 +106,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     adjoins_section = [0,0]
     surfaces_section = [0,0]
     sectors_section = [0,0]
+    models_section = [0,0]
     templates_section = [0,0]
     things_section = [0,0]
 
@@ -116,6 +118,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         match_adjoins_section = world_adjoins_regex.search(line)
         match_surfaces_section = world_surfaces_regex.search(line)
         match_sectors_section = world_sectors_regex.search(line)
+        match_models_section = world_models_regex.search(line)
         match_templates_section = world_templates_regex.search(line)
         match_things_section = world_things_regex.search(line)
         if match_materials_section:
@@ -132,6 +135,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             surfaces_section = [pos+1 , int(match_surfaces_section.group(1))]
         elif match_sectors_section:
             sectors_section = [pos+1 , int(match_sectors_section.group(1))]
+        elif match_models_section:
+            models_section = [pos+1 , int(match_models_section.group(1))]
         elif match_templates_section:
             templates_section = [pos+1 , int(match_templates_section.group(1))]
         elif match_things_section:
@@ -166,6 +171,69 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         uv_line[0] = float(uv_line[0])
         uv_line[1] = float(uv_line[1])
         uv_array.append(uv_line)
+
+
+    # read in sectors #################################################
+
+    sector_regex = re.compile(r"SECTOR\s(\d+)")
+    sector_ambient_regex = re.compile(r"AMBIENT LIGHT\s(-?\d*\.?\d*)")
+    sector_extra_regex = re.compile(r"EXTRA LIGHT\s(-?\d*\.?\d*)")
+    sector_tint_regex = re.compile(r"TINT\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_surfaces_regex =re.compile(r"SURFACES\s(\d+)\s(\d+)")
+
+    sector_pos = []
+    sectors_pos_array = []
+    # [[NUM, STARTPOS, ENDPOS], [NUM, STARTPOS, ENDPOS]...]
+
+    
+
+
+    i = 0
+    while i < sectors_section[1]:
+        sector_line_count = 0
+        sectors_dict = {}
+        for line in lines[sectors_section[0]:models_section[0]]:
+            match_sector = sector_regex.search(line)
+            match_ambient = sector_ambient_regex.search(line)
+            match_extra = sector_extra_regex.search(line)
+            match_tint = sector_tint_regex.search(line)
+            match_surfaces = sector_surfaces_regex.search(line)
+            sector_line_count += 1
+
+            if match_sector:
+                sectors_dict = {'sector':int(match_sector.group(1))}
+                sectors_dict['start'] = sectors_section[0] + sector_line_count
+
+            elif match_ambient:
+                sectors_dict['ambient'] = float(match_ambient.group(1))
+
+            elif match_extra:
+                sectors_dict['extra'] = float(match_extra.group(1))
+
+            elif match_tint:
+                sectors_dict['tint'] = (float(match_tint.group(1)), float(match_tint.group(2)), float(match_tint.group(3)))
+
+            elif match_surfaces:
+                sectors_dict['end'] = sectors_section[0] + sector_line_count
+                sectors_dict['surfaces'] = int(match_surfaces.group(1))
+
+                i += 1
+            # if sectors_dict:
+                sectors_pos_array.append(sectors_dict)
+        del sectors_dict
+
+
+
+    for sector in sectors_pos_array:
+        print(sector)
+
+
+
+
+    # dict of surfaces with corresponding lighting values
+    # for pos, sector in enumerate(sectors_pos_array):
+    #     for line in lines[int(sector[1]):int(sectors_pos_array[pos+1][1])]:
+    #         print(line)
 
 
     # read in surfaces ################################################
@@ -222,11 +290,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         j = 0
         if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
             while j < nvert*4:
-                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
                 j+=1
         else:
             while j < nvert:
-                surf_intensities.append(float(surfLine[10+nvert+j]))# + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
                 j+=1
         surf_intensities_list.append(surf_intensities)
 
@@ -275,7 +343,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     for position in alpha_mats_ids:
         alpha_mats[mat_name_list[int(position)] + ".mat"] = "alpha"
 
-    print(alpha_mats)
+    # print(alpha_mats)
 
 
     # create portal material ################################################
