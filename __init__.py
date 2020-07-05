@@ -211,29 +211,21 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 sectors_dict['extra'] = float(match_extra.group(1))
 
             elif match_tint:
-                sectors_dict['tint'] = (float(match_tint.group(1)), float(match_tint.group(2)), float(match_tint.group(3)))
+                sectors_dict['tint'] = [float(match_tint.group(1)), float(match_tint.group(2)), float(match_tint.group(3))]
 
             elif match_surfaces:
                 sectors_dict['end'] = sectors_section[0] + sector_line_count
-                sectors_dict['surfaces'] = int(match_surfaces.group(1))
+                sectors_dict['surfaces'] = int(match_surfaces.group(1)) + int(match_surfaces.group(2)) -1 # last surface in this sector
 
                 i += 1
             # if sectors_dict:
                 sectors_pos_array.append(sectors_dict)
         del sectors_dict
 
+    def get_surface_index(surf):
+        return surf.get('surfaces')
 
-
-    for sector in sectors_pos_array:
-        print(sector)
-
-
-
-
-    # dict of surfaces with corresponding lighting values
-    # for pos, sector in enumerate(sectors_pos_array):
-    #     for line in lines[int(sector[1]):int(sectors_pos_array[pos+1][1])]:
-    #         print(line)
+    sectors_pos_array.sort(key=get_surface_index)
 
 
     # read in surfaces ################################################
@@ -251,6 +243,11 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     alpha_mats_ids = []
     alpha_mats = {}
 
+    sector_extralight = 0.0
+    sector_ambient = 0.0
+    sector_tint = [0.0, 0.0, 0.0]
+
+    current_sector = 0
     i=0
     while i < surfaces_section[1]:
         surfLine=re.split("\s+", lines[i + surfaces_section[0] + 1],)
@@ -287,14 +284,26 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         uv_indices.append(uv_index_list)
 
 
+        # get sector light intensities per surface from sector list
+        if i >= sectors_pos_array[current_sector]['surfaces']:
+            sector_extralight = sectors_pos_array[current_sector]['extra']
+            sector_ambient = sectors_pos_array[current_sector]['ambient']
+            sector_tint = sectors_pos_array[current_sector]['tint']
+            current_sector += 1
+
+
         j = 0
         if motsflag:                   #  color light intensities in Mots (intensity, r, g, b)
             while j < nvert*4:
-                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
+                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight + sector_extralight)
                 j+=1
         else:
             while j < nvert:
-                surf_intensities.append(float(surfLine[10+nvert+j]) + extralight)
+                intensity = float(surfLine[10+nvert+j])
+                r = intensity + extralight + sector_extralight * sector_tint[0]
+                g = intensity + extralight + sector_extralight * sector_tint[1]
+                b = intensity + extralight + sector_extralight * sector_tint[2]
+                surf_intensities.append((r, g, b))
                 j+=1
         surf_intensities_list.append(surf_intensities)
 
@@ -536,9 +545,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                         color = (r, g, b, 1.0)
                     else:
                         surf_light = surf_intensities_list[isrf][jsrf]
-                        r = surf_light
-                        g = surf_light
-                        b = surf_light
+                        r = surf_light[0]
+                        g = surf_light[1]
+                        b = surf_light[2]
                         color = (r, g, b, 1.0)
                     vcol.data[polygon.loop_indices[jsrf]].color = color
 
