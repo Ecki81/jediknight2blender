@@ -12,9 +12,9 @@
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 bl_info = {
-    "name" : "Import JK/MotS Levels",
-    "author" : "Eckhard Seidel",
-    "description" : "Load level files from Star Wars Jedi Knight / Mysteries of the Sith (.jkl)",
+    "name" : "jediknight2blender",
+    "author" : "Ecki Seidel",
+    "description" : "Load level files from Jedi Knight: Dark Forces II / Mysteries of the Sith (.jkl)",
     "blender" : (2, 81, 0),
     "version" : (0, 8, 0),
     "location" : "File > Import > JK/MotS Level (.jkl)",
