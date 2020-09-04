@@ -179,6 +179,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     sector_ambient_regex = re.compile(r"AMBIENT LIGHT\s(-?\d*\.?\d*)")
     sector_extra_regex = re.compile(r"EXTRA LIGHT\s(-?\d*\.?\d*)")
     sector_tint_regex = re.compile(r"TINT\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_boundbox_regex = re.compile(r"BOUNDBOX\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_center_regex = re.compile(r"CENTER\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_radius_regex = re.compile(r"RADIUS\s(-?\d*\.?\d*)")
     sector_surfaces_regex =re.compile(r"SURFACES\s(\d+)\s(\d+)")
 
     sector_pos = []
@@ -197,6 +200,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             match_ambient = sector_ambient_regex.search(line)
             match_extra = sector_extra_regex.search(line)
             match_tint = sector_tint_regex.search(line)
+            match_boundbox = sector_boundbox_regex.search(line)
+            match_center = sector_center_regex.search(line)
+            match_radius = sector_radius_regex.search(line)
             match_surfaces = sector_surfaces_regex.search(line)
             sector_line_count += 1
 
@@ -213,6 +219,15 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             elif match_tint:
                 sectors_dict['tint'] = [float(match_tint.group(1)), float(match_tint.group(2)), float(match_tint.group(3))]
 
+            elif match_boundbox:
+                sectors_dict['boundbox'] = [float(match_boundbox.group(1)), float(match_boundbox.group(2)), float(match_boundbox.group(3)), float(match_boundbox.group(4)), float(match_boundbox.group(5)), float(match_boundbox.group(6))]
+
+            elif match_center:
+                sectors_dict['center'] = [float(match_center.group(1)), float(match_center.group(2)), float(match_center.group(3))]
+
+            elif match_radius:
+                sectors_dict['radius'] = [float(match_radius.group(1)), float(match_radius.group(2)), float(match_radius.group(3))]
+
             elif match_surfaces:
                 sectors_dict['end'] = sectors_section[0] + sector_line_count
                 sectors_dict['surfaces'] = int(match_surfaces.group(1)) + int(match_surfaces.group(2)) -1 # last surface in this sector
@@ -227,6 +242,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     sectors_pos_array.sort(key=get_surface_index)
 
+    print(sectors_pos_array)
 
     # read in surfaces ################################################
 
