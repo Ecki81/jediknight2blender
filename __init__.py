@@ -54,7 +54,7 @@ from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty
 from bpy.types import Operator
 
 
-def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale, select_shader):
+def read_jkl_data(context, filename, importThings, importMats, importIntensities, importAlpha, scale, select_shader, import_sector_info):
     '''takes jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
     print("reading jkl data file...")
     f = open(filename, 'r')
@@ -179,6 +179,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     sector_ambient_regex = re.compile(r"AMBIENT LIGHT\s(-?\d*\.?\d*)")
     sector_extra_regex = re.compile(r"EXTRA LIGHT\s(-?\d*\.?\d*)")
     sector_tint_regex = re.compile(r"TINT\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_boundbox_regex = re.compile(r"BOUNDBOX\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_center_regex = re.compile(r"CENTER\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
+    sector_radius_regex = re.compile(r"RADIUS\s(-?\d*\.?\d*)")
     sector_surfaces_regex =re.compile(r"SURFACES\s(\d+)\s(\d+)")
 
     sector_pos = []
@@ -197,6 +200,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             match_ambient = sector_ambient_regex.search(line)
             match_extra = sector_extra_regex.search(line)
             match_tint = sector_tint_regex.search(line)
+            match_boundbox = sector_boundbox_regex.search(line)
+            match_center = sector_center_regex.search(line)
+            match_radius = sector_radius_regex.search(line)
             match_surfaces = sector_surfaces_regex.search(line)
             sector_line_count += 1
 
@@ -212,6 +218,15 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
             elif match_tint:
                 sectors_dict['tint'] = [float(match_tint.group(1)), float(match_tint.group(2)), float(match_tint.group(3))]
+
+            elif match_boundbox:
+                sectors_dict['boundbox'] = [float(match_boundbox.group(1)), float(match_boundbox.group(2)), float(match_boundbox.group(3)), float(match_boundbox.group(4)), float(match_boundbox.group(5)), float(match_boundbox.group(6))]
+
+            elif match_center:
+                sectors_dict['center'] = [float(match_center.group(1)), float(match_center.group(2)), float(match_center.group(3))]
+
+            elif match_radius:
+                sectors_dict['radius'] = [float(match_radius.group(1))]
 
             elif match_surfaces:
                 sectors_dict['end'] = sectors_section[0] + sector_line_count
@@ -248,6 +263,26 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     sector_tint = [0.0, 0.0, 0.0]
 
     current_sector = 0
+
+
+    if import_sector_info:
+        # create sector property objects
+        sector_collection = bpy.data.collections.new('Sectors')
+        bpy.context.scene.collection.children.link(sector_collection)
+        for prop in sectors_pos_array:
+            print(prop['center'])
+            sector_empty = bpy.data.objects.new( "sector_" + str(prop['sector']) , None)
+            sector_radius = bpy.data.objects.new( "radius_" + str(prop['sector']) , None)
+            sector_radius.empty_display_type = 'SPHERE'
+            sector_radius.empty_display_size = prop['radius'][0]*scale
+            bpy.data.collections['Sectors'].objects.link(sector_empty)
+            bpy.data.collections['Sectors'].objects.link(sector_radius)
+            sector_x, sector_y, sector_z = prop['center'][0]*scale, prop['center'][1]*scale, prop['center'][2]*scale
+            sector_empty.location = sector_x, sector_y, sector_z
+            sector_radius.location = sector_x, sector_y, sector_z
+            sector_empty.show_name = True
+
+
     i=0
     while i < surfaces_section[1]:
         surfLine=re.split("\s+", lines[i + surfaces_section[0] + 1],)
@@ -630,6 +665,12 @@ class ImportJKLfile(Operator, ImportHelper):
         default='VERT',
     )
 
+    import_sector_info: BoolProperty(
+        name="Sector information (Collection: Sectors)",
+        description="Display sector properties in separate collection",
+        default=True,
+    )
+
     def draw_import_config(self, context):
         layout = self.layout
         box = layout.box()
@@ -640,6 +681,7 @@ class ImportJKLfile(Operator, ImportHelper):
         box.prop(self, "import_mats")
         transp_row = box.row()
         light_row = box.row()
+        sector_row = box.row()
         if self.import_mats:
             transp_row.enabled = True
             light_row.enabled = True
@@ -648,13 +690,16 @@ class ImportJKLfile(Operator, ImportHelper):
             light_row.enabled = False
         transp_row.prop(self, "import_alpha")
         light_row.prop(self, "select_shader")
+        sector_row.prop(self, "import_sector_info")
+
+
         
 
     def draw(self, context):
         self.draw_import_config(context)
 
     def execute(self, context):
-        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader)
+        return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader, self.import_sector_info)
 
 
 # Only needed if you want to add into a dynamic menu
