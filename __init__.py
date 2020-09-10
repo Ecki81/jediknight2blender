@@ -271,12 +271,22 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         bpy.context.scene.collection.children.link(sector_collection)
         for prop in sectors_pos_array:
             print(prop['center'])
+            (x1, y1, z1, x2, y2, z2) = prop['boundbox']
+            (x1, y1, z1, x2, y2, z2) = (x1*scale, y1*scale, z1*scale, x2*scale, y2*scale, z2*scale)
+            bb_verts = ((x1, y1, z1), (x1, y2, z1), (x1, y2, z2), (x1, y1, z2), (x2, y1, z1), (x2, y2, z1), (x2, y2, z2), (x2, y1, z2))
+            bb_faces = ((0, 1, 2, 3), (1, 5, 6, 2), (5, 4, 7, 6), (4, 0, 3, 7), (3, 2, 6, 7), (0, 4, 5, 1))
+            boundbox_empty = bpy.data.meshes.new('boundbox_'+str(prop['sector'])+'Mesh')
+            bbox_ob = bpy.data.objects.new('boundbox_'+str(prop['sector']), boundbox_empty)
+            bbox_ob.display_type = 'WIRE'
+            boundbox_empty.from_pydata(bb_verts, [], bb_faces)
+            boundbox_empty.update()
             sector_empty = bpy.data.objects.new( "sector_" + str(prop['sector']) , None)
             sector_radius = bpy.data.objects.new( "radius_" + str(prop['sector']) , None)
             sector_radius.empty_display_type = 'SPHERE'
             sector_radius.empty_display_size = prop['radius'][0]*scale
             bpy.data.collections['Sectors'].objects.link(sector_empty)
             bpy.data.collections['Sectors'].objects.link(sector_radius)
+            bpy.data.collections['Sectors'].objects.link(bbox_ob)
             sector_x, sector_y, sector_z = prop['center'][0]*scale, prop['center'][1]*scale, prop['center'][2]*scale
             sector_empty.location = sector_x, sector_y, sector_z
             sector_radius.location = sector_x, sector_y, sector_z
@@ -511,7 +521,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
 
     # create the mesh ##################################################
 
-    def create_Level(verts, edges):
+    def create_Level(verts, faces):
         # Create mesh and object
         me = bpy.data.meshes.new(name+'Mesh')
         ob = bpy.data.objects.new(name, me)
@@ -529,7 +539,8 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         # Link object to scene
         scene = bpy.context.scene
         scene.collection.objects.link(ob)
-        me.from_pydata(verts, [], edges)
+        me.from_pydata(verts, [], faces)
+        # me.validate()         # should be validated, currently UV index out of range error
         
         # add uv map
         me.uv_layers.new(name='UVMap')
@@ -667,8 +678,8 @@ class ImportJKLfile(Operator, ImportHelper):
 
     import_sector_info: BoolProperty(
         name="Sector information (Collection: Sectors)",
-        description="Display sector properties in separate collection",
-        default=True,
+        description="Display empties w/ sector properties in separate collection",
+        default=False,
     )
 
     def draw_import_config(self, context):
@@ -701,6 +712,25 @@ class ImportJKLfile(Operator, ImportHelper):
     def execute(self, context):
         return read_jkl_data(context, self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader, self.import_sector_info)
 
+# class addonPreferences(bpy.types.addonPreferences):
+#     pass
+
+class jediPreferences(bpy.types.AddonPreferences):
+    bl_idname = __name__
+  
+
+        # get file path with gob
+        # unpack gob
+        # search for jkls
+        # create directories from file path
+        # move jkls into directories
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text='Unpack every found *.jkl from *.gob.')
+        row = layout.row()
+        row.operator("unpack_jkls", text="Unpack JKLs")
+
 
 # Only needed if you want to add into a dynamic menu
 #def menu_func_import(self, context):
@@ -713,9 +743,15 @@ def import_jkl_button(self, context):
 
 def register():
     bpy.utils.register_class(ImportJKLfile)
+    bpy.utils.register_class(jediPreferences)
     bpy.types.TOPBAR_MT_file_import.append(import_jkl_button)
+    
 
 
 def unregister():
     bpy.utils.unregister_class(ImportJKLfile)
+    bpy.utils.unregister_class(jediPreferences)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
+
+if __name__ == '__main__':
+    register()

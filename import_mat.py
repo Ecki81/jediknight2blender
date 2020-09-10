@@ -98,6 +98,7 @@ class Mat:
                 mat.node_tree.links.new(bsdf.inputs['Base Color'], texImage.outputs['Color'])
                 if alpha:
                     mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
+                    mat.blend_method = 'CLIP'
 
             else:
                 mat.node_tree.nodes.remove(bsdf)

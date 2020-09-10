@@ -11,6 +11,7 @@ class Gob:
         self.data = f.read()
         f.close()
         self.toc = {}
+        self.jkls = []
         
     def get_toc(self):
         '''returns dict. key = filename, value = tuple(file offset from gob start, file length)'''
@@ -40,6 +41,14 @@ class Gob:
         # print("returned file" , str(type(file_ungob)))
 
         return file_ungob
+
+    def get_jkls(self):
+        '''returns a list of jkl files names'''
+        self.get_toc()
+        for file in self.toc:
+            print(file.keys())
+
+        return jkl_list
 
 
 # gob = Gob("D:/GalaxyClient/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2.gob")
