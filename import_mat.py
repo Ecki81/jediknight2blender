@@ -107,12 +107,12 @@ class Mat:
                 
                 vertexColor = mat.node_tree.nodes.new('ShaderNodeAttribute')
                 vertexColor.attribute_name = 'Intensities'
-                vertexColor.location = -500, 400
+                vertexColor.location = -500, -50
 
                 mixColor = mat.node_tree.nodes.new('ShaderNodeMixRGB')
                 mixColor.blend_type = 'MULTIPLY'
                 mixColor.inputs[0].default_value = 0.98
-                mixColor.location = -250, 300
+                mixColor.location = -250, 150
 
                 # # assign texture
                 

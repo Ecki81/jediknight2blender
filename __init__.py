@@ -268,9 +268,15 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     if import_sector_info:
         # create sector property objects
         sector_collection = bpy.data.collections.new('Sectors')
+        sector_num_coll = bpy.data.collections.new('Index')
+        sector_radius_coll = bpy.data.collections.new('Radius')
+        sector_bbox_coll = bpy.data.collections.new('Boundbox')
         bpy.context.scene.collection.children.link(sector_collection)
+        sector_collection.children.link(sector_num_coll)
+        sector_collection.children.link(sector_radius_coll)
+        sector_collection.children.link(sector_bbox_coll)
         for prop in sectors_pos_array:
-            print(prop['center'])
+            # boundboxes
             (x1, y1, z1, x2, y2, z2) = prop['boundbox']
             (x1, y1, z1, x2, y2, z2) = (x1*scale, y1*scale, z1*scale, x2*scale, y2*scale, z2*scale)
             bb_verts = ((x1, y1, z1), (x1, y2, z1), (x1, y2, z2), (x1, y1, z2), (x2, y1, z1), (x2, y2, z1), (x2, y2, z2), (x2, y1, z2))
@@ -280,13 +286,14 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
             bbox_ob.display_type = 'WIRE'
             boundbox_empty.from_pydata(bb_verts, [], bb_faces)
             boundbox_empty.update()
+            # sectors
             sector_empty = bpy.data.objects.new( "sector_" + str(prop['sector']) , None)
             sector_radius = bpy.data.objects.new( "radius_" + str(prop['sector']) , None)
             sector_radius.empty_display_type = 'SPHERE'
             sector_radius.empty_display_size = prop['radius'][0]*scale
-            bpy.data.collections['Sectors'].objects.link(sector_empty)
-            bpy.data.collections['Sectors'].objects.link(sector_radius)
-            bpy.data.collections['Sectors'].objects.link(bbox_ob)
+            bpy.data.collections['Index'].objects.link(sector_empty)
+            bpy.data.collections['Radius'].objects.link(sector_radius)
+            bpy.data.collections['Boundbox'].objects.link(bbox_ob)
             sector_x, sector_y, sector_z = prop['center'][0]*scale, prop['center'][1]*scale, prop['center'][2]*scale
             sector_empty.location = sector_x, sector_y, sector_z
             sector_radius.location = sector_x, sector_y, sector_z
@@ -305,11 +312,36 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         adjoin = int(surfLine[7])
         extralight = float(surfLine[8])
         nvert=int(surfLine[9])                          # count of vertexes needed for surfaces (nverts)
+
+        # surface flags
+
+        floor = 0x1
+        cog_linked = 0x2
+        impassable = 0x4
+        ai_cannot_walk = 0x8
+        double_tex_scale = 0x10
+        half_tex_scale = 0x20
+        eighth_tex_scale = 0x40
+        no_falling_damage = 0x80
         sky = 0x200
         sky2 = 0x400
+        scrolling = 0x800	
+        icy = 0x1000
+        very_icy = 0x2000
+        magsealed = 0x4000
+        metal_floor = 0x10000
+        deep_water = 0x20000
+        shallow_water = 0x40000
+        dirt_floor = 0x80000
+        very_deep_water = 0x100000
+
         skyflag=(surfflag & sky)
         sky2flag=(surfflag & sky2)
-        #scrollflag=(surfflag & 0x800)
+        mags_flag = (surfflag & magsealed)
+        water1_flag = (surfflag & deep_water)
+        water2_flag = (surfflag & shallow_water)
+        water3_flag = (surfflag & very_deep_water)
+
         # if adjoin + material, then probably transparent!
 
         material_indices.append(matId)
