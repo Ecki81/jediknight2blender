@@ -11,11 +11,12 @@ class Mat:
         self.transp = False
         self.alpha = False
         self.anim = False
+        self.flag = None
 
     def __str__(self):
         print(self.mat, self.pal)
 
-    def importMat(mat, pal, alpha, name, shader):
+    def importMat(mat, pal, alpha, name, shader, flag):
         '''
         reads an image from a JK mat file and its corresponding pal file and returns a material with diffuse map
         '''
@@ -73,9 +74,9 @@ class Mat:
 
 
             # write image
-            # image.filepath_raw = "/tmp/" + name + ".png"
-            # image.file_format = 'PNG'
-            # image.save()
+            image.filepath_raw = "/tmp/" + name + ".png"
+            image.file_format = 'PNG'
+            image.save()
 
             # create material
 
@@ -113,6 +114,48 @@ class Mat:
                 mixColor.blend_type = 'MULTIPLY'
                 mixColor.inputs[0].default_value = 0.98
                 mixColor.location = -250, 150
+
+                # # sith engine sky emulation
+                # # create nodes
+                # mapping = mat.node_tree.nodes.new('ShaderNodeMapping')
+                # mapping.vector_type = 'TEXTURE'
+                # tex_coord = mat.node_tree.nodes.new('ShaderNodeTexCoord')
+                # com_xyz = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
+                # arctan2a = mat.node_tree.nodes.new('ShaderNodeMath')
+                # arctan2a.operation = 'ARCTAN2'
+                # divide = mat.node_tree.nodes.new('ShaderNodeMath')
+                # divide.operation = 'DIVIDE'
+                # divide.inputs[0].default_value[1] = -2.0
+                # arctan2b = mat.node_tree.nodes.new('ShaderNodeMath')
+                # arctan2b.operation = 'ARCTAN2'
+                # sep_xyza = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
+                # sep_xyzb = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
+                # vec_transa = mat.node_tree.nodes.new('ShaderNodeVectorTransform')
+                # vec_transa.convert_from = 'CAMERA'
+                # vec_transa.convert_to = 'WORLD'
+                # vec_transa.inputs[0].default_value[0] = 1.0
+                # vec_transa.inputs[0].default_value[1] = 0.0
+                # vec_transa.inputs[0].default_value[2] = 0.0
+                # vec_transb = mat.node_tree.nodes.new('ShaderNodeVectorTransform')
+                # vec_transb.convert_from = 'WORLD'
+                # vec_transb.convert_to = 'CAMERA'
+                # vec_transb.inputs[0].default_value[0] = 0.0
+                # vec_transb.inputs[0].default_value[1] = 1.0
+                # vec_transb.inputs[0].default_value[2] = 0.0
+                # # connect sky nodes
+                # mat.node_tree.links.new(texImage.inputs[0], mapping.outputs[0])
+                # mat.node_tree.links.new(mapping.inputs[0], tex_coord.outputs[5])
+                # mat.node_tree.links.new(mapping.inputs[1], com_xyz.outputs[0])
+                # mat.node_tree.links.new(com_xyz.inputs[0], divide.outputs[0])
+                # mat.node_tree.links.new(divide.inputs[0], arctan2a.outputs[0])
+                # mat.node_tree.links.new(arctan2a.inputs[0], sep_xyza.outputs[0])
+                # mat.node_tree.links.new(arctan2a.inputs[1], sep_xyza.outputs[1])
+                # mat.node_tree.links.new(sep_xyza.inputs[0], vec_transa.outputs[0])
+                # mat.node_tree.links.new(com_xyz.inputs[1], arctan2b.outputs[0])
+                # mat.node_tree.links.new(arctan2b.inputs[0], sep_xyzb.outputs[1])
+                # mat.node_tree.links.new(arctan2b.inputs[1], sep_xyzb.outputs[2])
+                # mat.node_tree.links.new(sep_xyzb.inputs[0], vec_transb.outputs[0])
+
 
                 # # assign texture
                 

@@ -440,12 +440,12 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
         bsdf = mat.node_tree.nodes["Principled BSDF"]
         mat.node_tree.nodes.remove(bsdf)
         output = mat.node_tree.nodes["Material Output"]
-        colorNode = mat.node_tree.nodes.new('ShaderNodeRGB')
-        colorNode.outputs[0].default_value = color      
-        colorNode.location = -400,250
-        mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])
+        transpNode = mat.node_tree.nodes.new('ShaderNodeBsdfTransparent')   
+        transpNode.location = -400,250
+        mat.node_tree.links.new(output.inputs['Surface'], transpNode.outputs['BSDF'])
+        mat.blend_method = 'CLIP'
 
-    placeholder_mat('__portal', (0.0,0.8,0.0,1))      # green (underused in star wars design, contrasts with active blender colors)
+    placeholder_mat('__portal', None)      # transparent bsdf
 
     # load GOB, if neccessary ###############################################
 
@@ -461,7 +461,9 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
     cmp_file = re.split("\s+", lines[colormaps_section[0]],)[1]
     colormap = gob.ungob(cmp_file.lower())
     print("colormap:", cmp_file.lower())
-    select_shader
+    # select_shader
+    surfflag = None
+
 
     if importMats:
         for material in mat_list:
@@ -475,7 +477,7 @@ def read_jkl_data(context, filename, importThings, importMats, importIntensities
                 print(material, "already loaded")
             else:
                 try:
-                    Mat.importMat(gob.ungob(material), colormap, alpha, material, select_shader)
+                    Mat.importMat(gob.ungob(material), colormap, alpha, material, select_shader, surfflag)
                 except:
                     placeholder_mat(material, (1.0,0.0,1.0,1))
                     # print("couldn't import " + material + ". created placeholder mat")

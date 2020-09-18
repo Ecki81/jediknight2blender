@@ -4,5 +4,7 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.pythonPath": "C:\\Program Files\\Blender Foundation\\Blender 2.90\\2.90\\python\\bin"
+	}
 }
