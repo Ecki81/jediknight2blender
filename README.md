@@ -7,7 +7,7 @@ This script needs the original JK:DF2 or MotS container files (_.gob/.goo_)
 for the materials and 3do objects.
 The jkl files for the maps need to be unpacked into the Jedi Knight or MotS game directory, depending
 on which game they are based on.
-I used the container manager program _CONMAN.exe_ for that.
+I used the container manager program [CONMAN.exe](http://www.jkhub.net/library/index.php?title=Tools:Container_Manager_%28ConMan%29_v0.91z) for that.
 
 
 Install downloaded/cloned and zipped repo files as an addon to blender:
