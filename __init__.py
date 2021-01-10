@@ -41,14 +41,15 @@ bl_info = {
 import bpy, bmesh, mathutils
 from .import_jkl import Level
 from .import_3do import Thing
+from .import_gob import Gob
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
-from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
+from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
+from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences, Panel
 
 
 class ImportJKLfile(Operator, ImportHelper):
     """Load a level file from Star Wars Jedi Knight / Mysteries of the Sith (.jkl)"""
-    bl_idname = "import_scene.jkl_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_idname = "import_level.jkl_data"  # important since its how bpy.ops.import_test.some_data is constructed
     bl_label = "Import JKL"
 
     # ImportHelper mixin class uses this
@@ -138,55 +139,103 @@ class ImportJKLfile(Operator, ImportHelper):
 
     def execute(self, context):
         level = Level(self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader, self.import_sector_info)
-        return level.import_Level()
+        level.import_Level()
+        return {'FINISHED'}
+
+class ImportGOBfile(Operator):
+    """Load an archive file from Star Wars Jedi Knight / Mysteries of the Sith (.gob)"""
+    bl_idname = "import_scene.gob_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    bl_label = "Import GOB"
+
+    filter_glob: StringProperty(default="*.gob;*.goo", options={'HIDDEN'}, maxlen=255)
+    filepath: StringProperty(name="", subtype="FILE_PATH", options={'HIDDEN'})
+
+    def invoke(self, context, event):
+        wm = context.window_manager.fileselect_add(self)
+        return {'RUNNING_MODAL'}
+
+    def execute(self, context):
+        bpy.ops.popup.gob_browser('INVOKE_DEFAULT',filepath=self.filepath)
+        return {'FINISHED'}
+
+class FileItem(PropertyGroup):
+    '''Repesents the file items in GOB file'''
+    
+    name : StringProperty()
+    
+    selected : BoolProperty(name="")
+
+class GOB_UL_List(UIList):
+    '''List type'''
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+        custom_icon = 'FILE'
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(text=item.name, icon = custom_icon)
+        elif self.layout_type in {'GRID'}:
+            layout.alignment = 'CENTER'
+            layout.label(text="", icon = custom_icon)
+
+gob = None
+class GOBBrowser(Operator):
+    '''Display popup window for list of files in GOB/GOO archive'''
+    bl_idname = "popup.gob_browser"
+    bl_label = "GOB Archive"
+    bl_options = {'INTERNAL'}
+
+    filepath : StringProperty()
+    file_entries : CollectionProperty(type=FileItem)
+    list_index : IntProperty(default=0)
+
+    def invoke(self, context, event):
+        global gob
+        gob = Gob(self.filepath)
+        for file in gob.get_gobed_files():
+            entry = self.file_entries.add()
+            entry.name = file
+
+        return context.window_manager.invoke_popup(self, width=500)
+
+    def draw(self, context):
+        global gob
+        self.list_index = 1
+
+        layout = self.layout
+        
+        layout.label(text = self.filepath, icon = 'FILE_ARCHIVE')
+        layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
 
 
+    def execute(self, context):
 
-# class JK2B_PT_Panel(bpy.types.Panel):
-#     """Creates a Panel in the Object properties window"""
-#     bl_label = "Jedi Knight to Blender"
-#     bl_idname = "JK2B_PT_Panel"
-#     bl_space_type = 'VIEW_3D'
-#     bl_region_type = 'UI'
-#     bl_category = 'Jedi Knight'
+        return {'FINISHED'}
 
-#     def draw(self, context):
-#         layout = self.layout
-#         layout.label(text="GOB file", icon="FILE_ARCHIVE")
-
-
-#         layout.operator("jk.show_gob")
-
-# class JK2B_OT_Show_Gob(Operator):
-#     bl_label = "GOB file"
-#     bl_idname = "jk2b.show_gob"
-
-# class Gob_File_Item(PropertyGroup):
-
-#     file_name: StringProperty(
-#         name="file_name",
-#         description="Name of packed file"
-#     )
-
-#     file_extension: StringProperty(
-#         name="extension",
-#         description="Type of packed file"
-#     )
 
 def import_jkl_button(self, context):
     self.layout.operator(ImportJKLfile.bl_idname, text="JK/MotS Level (.jkl)")
 
+def import_gob_button(self, context):
+    self.layout.operator(ImportGOBfile.bl_idname, text="JK/MotS Archive (.gob/.goo)")
+
 def register():
     bpy.utils.register_class(ImportJKLfile)
-    # bpy.utils.register_class(JK2B_PT_Panel)
-    # bpy.utils.register_class(JK2B_OT_Show_Gob)
+    bpy.utils.register_class(ImportGOBfile)
+    bpy.utils.register_class(FileItem)
+    bpy.utils.register_class(GOBBrowser)
+    bpy.utils.register_class(GOB_UL_List)
     bpy.types.TOPBAR_MT_file_import.append(import_jkl_button)
+    bpy.types.TOPBAR_MT_file_import.append(import_gob_button)
+
 
 def unregister():
     bpy.utils.unregister_class(ImportJKLfile)
-    # bpy.utils.unregister_class(JK2B_PT_Panel)
-    # bpy.utils.unregister_class(JK2B_OT_Show_Gob)
+    bpy.utils.unregister_class(ImportGOBfile)
+    bpy.utils.unregister_class(FileItem)
+    bpy.utils.unregister_class(GOBBrowser)
+    bpy.utils.unregister_class(GOB_UL_List)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
+    bpy.types.TOPBAR_MT_file_import.remove(import_gob_button)
+
 
 if __name__ == '__main__':
     register()

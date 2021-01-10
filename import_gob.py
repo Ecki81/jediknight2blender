@@ -13,8 +13,8 @@ class Gob:
         self.toc = {}
         self.jkls = []
         
-    def get_toc(self):
-        '''returns dict. key = filename, value = tuple(file offset from gob start, file length)'''
+    def set_toc(self):
+        '''sets toc dict. key = filename, value = tuple(file offset from gob start, file length)'''
         first_size_offset, first_offset, file_count, offset, length = unpack('LLLLL', self.data[4:24])
 
         i = 0
@@ -33,7 +33,7 @@ class Gob:
 
     def ungob(self, file):
         '''takes string of file in GOB/GOO ("00tabl.3do"), returns extracted file'''
-        self.get_toc()
+        self.set_toc()
         file_offset, length = self.toc[file]
         file_ungob = self.data[file_offset:file_offset+length]
 
@@ -41,13 +41,9 @@ class Gob:
 
     def get_gobed_files(self):
         '''returns a list of files names'''
-        self.get_toc()
-        # for file in self.toc:
-        #     print(file)
+        self.set_toc()
+        return self.toc
 
-        print(self.toc)
-
-        return None
 
 
 # gob = Gob("D:/GalaxyClient/Games/Star Wars Jedi Knight - Dark Forces 2/Resource/Res2.gob")
