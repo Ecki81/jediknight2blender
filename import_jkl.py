@@ -2,7 +2,7 @@ import re
 import bpy
 import mathutils
 import os
-from struct import *
+from struct import unpack
 from .import_3do import Thing
 from .import_mat import Mat
 from .import_gob import Gob
@@ -398,14 +398,15 @@ class Level:
 
         # call material loading class ###########################################
         
-        cmp_file = re.split("\s+", lines[colormaps_section[0]],)[1]
-        colormap = gob.ungob(cmp_file.lower())
-        print("colormap:", cmp_file.lower())
+
         # select_shader
         surfflag = None
 
 
         if self.importMats:
+            cmp_file = re.split("\s+", lines[colormaps_section[0]],)[1]
+            colormap = gob.ungob(cmp_file.lower())
+            print("colormap:", cmp_file.lower())
             for material in mat_list:
                 material_loaded = material in bpy.data.materials
                 if material in alpha_mats and self.importAlpha:

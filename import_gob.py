@@ -1,4 +1,4 @@
-from struct import *
+from struct import unpack
 
 class Gob:
     '''extract single files from GOB/GOO container file''',

@@ -1,4 +1,4 @@
-from struct import *
+from struct import unpack
 from . import jk_flags
 import bpy
 

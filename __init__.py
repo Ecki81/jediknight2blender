@@ -168,13 +168,20 @@ class FileItem(PropertyGroup):
 class GOB_UL_List(UIList):
     '''List type'''
 
-    def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
+    def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
         custom_icon = 'FILE'
+        operator = data
+        gob_entry = item
+
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.name, icon = custom_icon)
+            layout.prop(gob_entry, "name", text="", emboss=False,  icon = custom_icon)
+            layout.prop(gob_entry, "selected")
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon = custom_icon)
+
+    def invoke(self, context, event):
+        pass
 
 gob = None
 class GOBBrowser(Operator):
@@ -194,11 +201,11 @@ class GOBBrowser(Operator):
             entry = self.file_entries.add()
             entry.name = file
 
-        return context.window_manager.invoke_popup(self, width=500)
+        return context.window_manager.invoke_props_dialog(self, width=250)
 
     def draw(self, context):
         global gob
-        self.list_index = 1
+        self.list_index = 0
 
         layout = self.layout
         
