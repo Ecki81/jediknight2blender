@@ -23,7 +23,8 @@ class Gob:
             byte_offset = 24+i*136
             file_path = unpack('<128s', self.data[byte_offset:byte_offset+128])
             file_offset, length = unpack('LL', self.data[byte_offset-8:byte_offset])
-            file_path = file_path[0].decode('ascii').split('\x00',1)[0] # bin to text, removed \x00
+            file_path_decode = file_path[0].decode('ISO-8859-1') # bin to str
+            file_path = file_path_decode.split('\x00',1)[0] # removed \x00
             file_name_clean = file_path.split('\\', 2)[-1]
             toc[file_name_clean] = (file_offset, length)
             i += 1

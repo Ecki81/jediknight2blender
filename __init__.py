@@ -217,6 +217,18 @@ class GOBBrowser(Operator):
 
         return {'FINISHED'}
 
+class ImportGOBItem(Operator):
+    '''Imports selected file from GOB Browser'''
+    bl_idname = "import.browser_file"
+    bl_label = "Import File"
+
+    def invoke(sel):
+        pass
+
+    def execute(self, context):
+        pass
+
+
 
 def import_jkl_button(self, context):
     self.layout.operator(ImportJKLfile.bl_idname, text="JK/MotS Level (.jkl)")
