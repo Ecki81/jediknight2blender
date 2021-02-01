@@ -64,7 +64,7 @@ class Thing:
         '''read in and build 3do mesh'''
         # import_3do(self.name, self.x, self.y, self.z, self.pitch, self.yaw, self.roll)
 
-        ungobed_string = self.file.decode("utf-8")
+        ungobed_string = self.file.decode("ISO-8859-1")
         lines = re.split('\n', ungobed_string)
         del ungobed_string
 

@@ -142,6 +142,9 @@ class ImportJKLfile(Operator, ImportHelper):
         level.import_Level()
         return {'FINISHED'}
 
+
+
+
 class ImportGOBfile(Operator):
     """Load an archive file from Star Wars Jedi Knight / Mysteries of the Sith (.gob)"""
     bl_idname = "import_scene.gob_data"  # important since its how bpy.ops.import_test.some_data is constructed
@@ -158,24 +161,45 @@ class ImportGOBfile(Operator):
         bpy.ops.popup.gob_browser('INVOKE_DEFAULT',filepath=self.filepath)
         return {'FINISHED'}
 
+
+
+
 class FileItem(PropertyGroup):
     '''Repesents the file items in GOB file'''
     
     name : StringProperty()
     
-    selected : BoolProperty(name="")
+    size : FloatProperty(default=0.0)
+
+
+
 
 class GOB_UL_List(UIList):
     '''List type'''
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
-        custom_icon = 'FILE'
-        operator = data
-        gob_entry = item
+        ext = item.name.split(".")[-1]
+
+        if ext == "3do":
+            custom_icon = 'FILE_3D'
+        elif ext == "mat":
+            custom_icon = 'TEXTURE'
+        elif ext == "jkl":
+            custom_icon = 'SCENE_DATA'
+        elif ext == "cog":
+            custom_icon = 'SETTINGS'
+        elif ext == "cmp":
+            custom_icon = 'COLOR'
+        elif ext == "wav":
+            custom_icon = 'OUTLINER_DATA_SPEAKER'
+
+        else:
+            custom_icon = 'FILE'
+
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(gob_entry, "name", text="", emboss=False,  icon = custom_icon)
-            layout.prop(gob_entry, "selected")
+            layout.label(text=item.name, icon = custom_icon)
+            layout.label(text='? KB')
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon = custom_icon)
@@ -183,8 +207,11 @@ class GOB_UL_List(UIList):
     def invoke(self, context, event):
         pass
 
+
+
+
 gob = None
-class GOBBrowser(Operator):
+class POPUP_OT_gob_browser(Operator):
     '''Display popup window for list of files in GOB/GOO archive'''
     bl_idname = "popup.gob_browser"
     bl_label = "GOB Archive"
@@ -194,6 +221,8 @@ class GOBBrowser(Operator):
     file_entries : CollectionProperty(type=FileItem)
     list_index : IntProperty(default=0)
 
+    is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
+
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
@@ -201,32 +230,32 @@ class GOBBrowser(Operator):
             entry = self.file_entries.add()
             entry.name = file
 
-        return context.window_manager.invoke_props_dialog(self, width=250)
+        return context.window_manager.invoke_props_dialog(self, width=500)      # with "OK" button for now
 
     def draw(self, context):
-        global gob
-        self.list_index = 0
-
         layout = self.layout
         
         layout.label(text = self.filepath, icon = 'FILE_ARCHIVE')
         layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
 
+        layout.prop(self, "is_mots")
 
     def execute(self, context):
+        global gob
+
+        filename = self.file_entries[self.list_index].name
+        ext = filename.split(".")[-1]
+
+        ungobed_file = gob.ungob(filename)
+
+        if ext == "3do":
+            thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, self.is_mots)
+            thing.import_Thing()
+
+        else:
+            print("only 3DOs supported for now")
 
         return {'FINISHED'}
-
-class ImportGOBItem(Operator):
-    '''Imports selected file from GOB Browser'''
-    bl_idname = "import.browser_file"
-    bl_label = "Import File"
-
-    def invoke(sel):
-        pass
-
-    def execute(self, context):
-        pass
 
 
 
@@ -240,7 +269,7 @@ def register():
     bpy.utils.register_class(ImportJKLfile)
     bpy.utils.register_class(ImportGOBfile)
     bpy.utils.register_class(FileItem)
-    bpy.utils.register_class(GOBBrowser)
+    bpy.utils.register_class(POPUP_OT_gob_browser)
     bpy.utils.register_class(GOB_UL_List)
     bpy.types.TOPBAR_MT_file_import.append(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.append(import_gob_button)
@@ -250,7 +279,7 @@ def unregister():
     bpy.utils.unregister_class(ImportJKLfile)
     bpy.utils.unregister_class(ImportGOBfile)
     bpy.utils.unregister_class(FileItem)
-    bpy.utils.unregister_class(GOBBrowser)
+    bpy.utils.unregister_class(POPUP_OT_gob_browser)
     bpy.utils.unregister_class(GOB_UL_List)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.remove(import_gob_button)
