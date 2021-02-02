@@ -252,6 +252,7 @@ class POPUP_OT_gob_browser(Operator):
     file_entries : CollectionProperty(type=FileItem)
     list_index : IntProperty(default=0)
 
+    in_text_editor : BoolProperty(name="Text also", description="File is additionally loaded into blender's Text Editor", default=False)
     is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
     palette_file : StringProperty(default="01narsh.cmp")
 
@@ -272,6 +273,7 @@ class POPUP_OT_gob_browser(Operator):
         layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
 
         layout.prop(self, "is_mots")
+        layout.prop(self, "in_text_editor")
 
     def execute(self, context):
         global gob
@@ -293,19 +295,22 @@ class POPUP_OT_gob_browser(Operator):
             level = Level(self.filepath + "\\" + filename, True, True, True, True, 1.0, "VERT", False)
             level.open_from_gob(ungobed_file)
             level.import_Level()
-            prefs.jkdf_path
-            prefs.mots_path
-            self.report({'INFO'}, "Level " + filename.upper() + " imported")
+            if self.in_text_editor:
+                text = bpy.data.texts.new(filename)
+                text.write(ungobed_file.decode("ascii"))
+            # prefs.jkdf_path
+            # prefs.mots_path
+            self.report({'INFO'}, "Level \"" + filename[:-4] + "\" imported")
 
         elif ext == "3do":
             thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, self.is_mots)
             thing.import_Thing()
-            self.report({'INFO'}, "Object " + filename.upper() + " imported")
+            self.report({'INFO'}, "Object \"" + filename[:-4] + "\" imported")
 
         elif ext == "mat":
             mat = Mat(ungobed_file, ungobed_palette, False, filename, "BSDF", None)
             mat.import_Mat()
-            self.report({'INFO'}, "Material " + filename.upper() + " imported")
+            self.report({'INFO'}, "Material \"" + filename[:-4] + "\" imported")
 
         else:
             self.report({'WARNING'}, ext.upper() + " not supported for now")
