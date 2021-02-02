@@ -11,9 +11,9 @@ import pathlib
 
 class Level:
 
-    def __init__(self, filename, importThings, importMats, importIntensities, importAlpha, scale, select_shader, import_sector_info):
+    def __init__(self, path, importThings, importMats, importIntensities, importAlpha, scale, select_shader, import_sector_info):
         '''initialize jkl with diverse import flags'''
-        self.file = filename
+        self.lines = None
         self.importThings = importThings
         self.importMats = importMats
         self.importIntensities = importIntensities
@@ -21,18 +21,35 @@ class Level:
         self.scale = scale
         self.select_shader = select_shader
         self.import_sector_info = import_sector_info
+        self.path = path
+        self.name = ""
+
+
+    def open_jkl(self, jkl_file):
+        f = open(jkl_file, 'r')
+        self.lines=f.readlines()  # store the entire file in a variable 
+        f.close()
+        
+
+    def open_from_gob(self, ungobed_file):
+        ungobed_string = ungobed_file.decode("ISO-8859-1")
+        self.lines = re.split('\n', ungobed_string)
+        del ungobed_string
+
 
     def import_Level(self):
         '''reads jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
         print("reading jkl data file...")
-        f = open(self.file, 'r')
-        lines=f.readlines()  # store the entire file in a variable 
-        f.close()
+        # f = open(self.path, 'r')
+        # lines=f.readlines()  # store the entire file in a variable 
+        # f.close()
+
+        lines = self.lines
         
-        levelpath = re.split("\\\\", self.file)
+        levelpath = re.split("\\\\", self.path)
         name = levelpath[-1].replace(".jkl", "")
 
-        path = pathlib.Path(self.file)
+        path = pathlib.Path(self.path)
         gob_path = pathlib.Path('')
 
         parent = 0
@@ -590,8 +607,5 @@ class Level:
         ######################################################################
 
         create_Level(vert_array, surf_list)
-        print("created level " + name)
-
-
-            
+        print("created level " + name)            
         return {'FINISHED'}

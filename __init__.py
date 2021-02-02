@@ -45,7 +45,33 @@ from .import_mat import Mat
 from .import_gob import Gob
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
-from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences, Panel
+from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
+
+
+
+class JKLAddon_Prefs(AddonPreferences):
+    bl_idname = __name__
+
+    jkdf_path : StringProperty(
+        name = "DF:JK Resource dir",
+        subtype = 'DIR_PATH',
+        default = "C:\Program Files (x86)\GOG Galaxy\Games\Star Wars Jedi Knight - Dark Forces 2\Resource"
+    )
+
+    mots_path : StringProperty(
+        name = "MotS Resource dir",
+        subtype = 'DIR_PATH',
+        default = "C:\Program Files (x86)\GOG Galaxy\Games\Star Wars Jedi Knight - Mysteries of the Sith\Resource"
+    )
+
+
+    def draw(self, context):
+        layout = self.layout
+        layout.label(text="Please specify the \"Resource\" directories for DF:JK and/or MotS")
+        layout.prop(self, "jkdf_path")
+        layout.prop(self, "mots_path")
+
+
 
 
 class ImportJKLfile(Operator, ImportHelper):
@@ -140,6 +166,7 @@ class ImportJKLfile(Operator, ImportHelper):
 
     def execute(self, context):
         level = Level(self.filepath, self.import_things, self.import_mats, self.import_intensities, self.import_alpha, self.import_scale, self.select_shader, self.import_sector_info)
+        level.open_jkl(self.filepath)
         level.import_Level()
         return {'FINISHED'}
 
@@ -199,8 +226,11 @@ class GOB_UL_List(UIList):
 
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.name, icon = custom_icon)
-            layout.label(text=str(item.size) + " KB")
+            split = layout.split(factor=0.8)
+            col_1 = split.column()
+            col_2 = split.column()
+            col_1.label(text=item.name, icon = custom_icon)
+            col_2.label(text=str(item.size) + " KB")
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon = custom_icon)
@@ -225,8 +255,6 @@ class POPUP_OT_gob_browser(Operator):
     is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
     palette_file : StringProperty(default="01narsh.cmp")
 
-
-
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
@@ -244,27 +272,43 @@ class POPUP_OT_gob_browser(Operator):
         layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
 
         layout.prop(self, "is_mots")
-        layout.prop(self, "palette_enum")
 
     def execute(self, context):
         global gob
+
+        prefs = bpy.context.preferences.addons[__name__].preferences
+        gob_path = self.filepath
+        print(gob_path)
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
 
         ungobed_file = gob.ungob(filename)
-        ungobed_palette = gob.ungob(self.palette_file)
+        try:
+            ungobed_palette = gob.ungob(self.palette_file)
+        except:
+            pass
 
-        if ext == "3do":
+        if ext == "jkl":
+            level = Level(self.filepath + "\\" + filename, True, True, True, True, 1.0, "VERT", False)
+            level.open_from_gob(ungobed_file)
+            level.import_Level()
+            prefs.jkdf_path
+            prefs.mots_path
+            self.report({'INFO'}, "Level " + filename.upper() + " imported")
+
+        elif ext == "3do":
             thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, self.is_mots)
             thing.import_Thing()
+            self.report({'INFO'}, "Object " + filename.upper() + " imported")
 
-        if ext == "mat":
+        elif ext == "mat":
             mat = Mat(ungobed_file, ungobed_palette, False, filename, "BSDF", None)
             mat.import_Mat()
+            self.report({'INFO'}, "Material " + filename.upper() + " imported")
 
         else:
-            print("only 3DOs supported for now")
+            self.report({'WARNING'}, ext.upper() + " not supported for now")
 
         return {'FINISHED'}
 
@@ -277,6 +321,8 @@ def import_gob_button(self, context):
     self.layout.operator(ImportGOBfile.bl_idname, text="JK/MotS Archive (.gob/.goo)")
 
 def register():
+
+    bpy.utils.register_class(JKLAddon_Prefs)
     bpy.utils.register_class(ImportJKLfile)
     bpy.utils.register_class(ImportGOBfile)
     bpy.utils.register_class(FileItem)
@@ -287,6 +333,8 @@ def register():
 
 
 def unregister():
+
+    bpy.utils.unregister_class(JKLAddon_Prefs)
     bpy.utils.unregister_class(ImportJKLfile)
     bpy.utils.unregister_class(ImportGOBfile)
     bpy.utils.unregister_class(FileItem)
