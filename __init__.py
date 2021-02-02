@@ -41,6 +41,7 @@ bl_info = {
 import bpy, bmesh, mathutils
 from .import_jkl import Level
 from .import_3do import Thing
+from .import_mat import Mat
 from .import_gob import Gob
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
@@ -199,7 +200,7 @@ class GOB_UL_List(UIList):
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
             layout.label(text=item.name, icon = custom_icon)
-            layout.label(text='? KB')
+            layout.label(text=str(item.size) + " KB")
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon = custom_icon)
@@ -222,6 +223,9 @@ class POPUP_OT_gob_browser(Operator):
     list_index : IntProperty(default=0)
 
     is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
+    palette_file : StringProperty(default="01narsh.cmp")
+
+
 
     def invoke(self, context, event):
         global gob
@@ -229,8 +233,9 @@ class POPUP_OT_gob_browser(Operator):
         for file in gob.get_gobed_files():
             entry = self.file_entries.add()
             entry.name = file
-
+ 
         return context.window_manager.invoke_props_dialog(self, width=500)      # with "OK" button for now
+
 
     def draw(self, context):
         layout = self.layout
@@ -239,6 +244,7 @@ class POPUP_OT_gob_browser(Operator):
         layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
 
         layout.prop(self, "is_mots")
+        layout.prop(self, "palette_enum")
 
     def execute(self, context):
         global gob
@@ -247,10 +253,15 @@ class POPUP_OT_gob_browser(Operator):
         ext = filename.split(".")[-1]
 
         ungobed_file = gob.ungob(filename)
+        ungobed_palette = gob.ungob(self.palette_file)
 
         if ext == "3do":
             thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, self.is_mots)
             thing.import_Thing()
+
+        if ext == "mat":
+            mat = Mat(ungobed_file, ungobed_palette, False, filename, "BSDF", None)
+            mat.import_Mat()
 
         else:
             print("only 3DOs supported for now")
