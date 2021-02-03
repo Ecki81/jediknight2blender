@@ -197,7 +197,7 @@ class FileItem(PropertyGroup):
     
     name : StringProperty()
     
-    size : FloatProperty(default=0.0)
+    size : IntProperty(default=0)
 
 
 
@@ -207,30 +207,39 @@ class GOB_UL_List(UIList):
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
         ext = item.name.split(".")[-1]
+        size = item.size
 
         if ext == "3do":
             custom_icon = 'FILE_3D'
+            filetype = "3D Object"
         elif ext == "mat":
             custom_icon = 'TEXTURE'
+            filetype = "Texture"
         elif ext == "jkl":
             custom_icon = 'SCENE_DATA'
+            filetype = "Level"
         elif ext == "cog":
             custom_icon = 'SETTINGS'
+            filetype = "Cog Script"
         elif ext == "cmp":
             custom_icon = 'COLOR'
+            filetype = "Color Map"
         elif ext == "wav":
             custom_icon = 'OUTLINER_DATA_SPEAKER'
+            filetype = "Audio"
 
         else:
             custom_icon = 'FILE'
+            filetype = ""
 
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            split = layout.split(factor=0.8)
-            col_1 = split.column()
-            col_2 = split.column()
-            col_1.label(text=item.name, icon = custom_icon)
-            col_2.label(text=str(item.size) + " KB")
+            split = layout.split(factor=0.7)
+            row_1 = split.row()
+            row_2 = split.row()
+            row_1.label(text=item.name, icon = custom_icon)
+            row_2.label(text=str(item.size) + " KB")
+            row_2.label(text=filetype)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
             layout.label(text="", icon = custom_icon)
@@ -252,35 +261,41 @@ class POPUP_OT_gob_browser(Operator):
     file_entries : CollectionProperty(type=FileItem)
     list_index : IntProperty(default=0)
 
-    in_text_editor : BoolProperty(name="Text also", description="File is additionally loaded into blender's Text Editor", default=False)
+    in_text_editor : BoolProperty(name="file in Text Editor", description="File is additionally loaded into blender's Text Editor", default=False)
     is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
     palette_file : StringProperty(default="01narsh.cmp")
 
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
-        for file in gob.get_gobed_files():
+        for item in gob.get_gobed_files().items():
             entry = self.file_entries.add()
-            entry.name = file
+            entry.name = item[0]
+            entry.size = int(item[1][1])>>10
+
+        for item in gob.get_gobed_files().items():
+            print(item[1])
  
-        return context.window_manager.invoke_props_dialog(self, width=500)      # with "OK" button for now
+        return context.window_manager.invoke_props_dialog(self, width=600)      # with "OK" button for now
 
 
     def draw(self, context):
         layout = self.layout
         
         layout.label(text = self.filepath, icon = 'FILE_ARCHIVE')
-        layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index")
+        layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index", rows=25)
 
-        layout.prop(self, "is_mots")
-        layout.prop(self, "in_text_editor")
+        layout.label(text="Preferences")
+        split = layout.split()
+
+        split.prop(self, "is_mots")
+        split.prop(self, "in_text_editor",)
 
     def execute(self, context):
         global gob
 
         prefs = bpy.context.preferences.addons[__name__].preferences
         gob_path = self.filepath
-        print(gob_path)
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
@@ -291,13 +306,15 @@ class POPUP_OT_gob_browser(Operator):
         except:
             pass
 
+        if self.in_text_editor:
+            text = bpy.data.texts.new(filename)
+            text.write(ungobed_file.decode("ascii"))
+            text.cursor_set(0)
+
         if ext == "jkl":
             level = Level(self.filepath + "\\" + filename, True, True, True, True, 1.0, "VERT", False)
             level.open_from_gob(ungobed_file)
             level.import_Level()
-            if self.in_text_editor:
-                text = bpy.data.texts.new(filename)
-                text.write(ungobed_file.decode("ascii"))
             # prefs.jkdf_path
             # prefs.mots_path
             self.report({'INFO'}, "Level \"" + filename[:-4] + "\" imported")
@@ -313,7 +330,7 @@ class POPUP_OT_gob_browser(Operator):
             self.report({'INFO'}, "Material \"" + filename[:-4] + "\" imported")
 
         else:
-            self.report({'WARNING'}, ext.upper() + " not supported for now")
+            self.report({'WARNING'}, ext.upper() + "s: only text supported")
 
         return {'FINISHED'}
 
