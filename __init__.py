@@ -39,6 +39,7 @@ bl_info = {
 # 
 
 import bpy, bmesh, mathutils
+from decimal import Decimal
 from .import_jkl import Level
 from .import_3do import Thing
 from .import_mat import Mat
@@ -192,25 +193,33 @@ class ImportGOBfile(Operator):
 
 
 
-class FileItem(PropertyGroup):
+class File_Item(PropertyGroup):
     '''Repesents the file items in GOB file'''
     
     name : StringProperty()
     
-    size : IntProperty(default=0)
+    size : FloatProperty(default=0.0)
 
+
+
+
+class Dir_Item(PropertyGroup):
+    '''Repesents the file items in GOB file'''
+    
+    name : StringProperty()
+    
 
 
 
 class GOB_UL_List(UIList):
-    '''List type'''
+    '''List type for GOB file display'''
 
     def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
         ext = item.name.split(".")[-1]
         size = item.size
 
         if ext == "3do":
-            custom_icon = 'FILE_3D'
+            custom_icon = 'MATCUBE'
             filetype = "3D Object"
         elif ext == "mat":
             custom_icon = 'TEXTURE'
@@ -238,7 +247,10 @@ class GOB_UL_List(UIList):
             row_1 = split.row()
             row_2 = split.row()
             row_1.label(text=item.name, icon = custom_icon)
-            row_2.label(text=str(item.size) + " KB")
+            if item.size < 1000:
+                row_2.label(text=format(item.size, ".1f") + " KiB")
+            else:
+                row_2.label(text=format(item.size/1024, ".1f") + " MiB")
             row_2.label(text=filetype)
         elif self.layout_type in {'GRID'}:
             layout.alignment = 'CENTER'
@@ -250,6 +262,17 @@ class GOB_UL_List(UIList):
 
 
 
+class GOB_UL_Dir_List(UIList):
+    '''List type for GOB directory display'''
+
+    def draw_item(self, context, layout, data, item, icon, active_data, active_property, index):
+
+        if self.layout_type in {'DEFAULT', 'COMPACT'}:
+            layout.label(text=item.name, icon='FILE_FOLDER')
+        elif self.layout_type in {'GRID'}:
+            layout.label(text="", icon='FILE_FOLDER')
+
+
 gob = None
 class POPUP_OT_gob_browser(Operator):
     '''Display popup window for list of files in GOB/GOO archive'''
@@ -258,12 +281,30 @@ class POPUP_OT_gob_browser(Operator):
     bl_options = {'INTERNAL'}
 
     filepath : StringProperty()
-    file_entries : CollectionProperty(type=FileItem)
+    file_entries : CollectionProperty(type=File_Item)
+    dir_entries : CollectionProperty(type=Dir_Item)
     list_index : IntProperty(default=0)
+    dir_index : IntProperty(default=0)
 
-    in_text_editor : BoolProperty(name="file in Text Editor", description="File is additionally loaded into blender's Text Editor", default=False)
-    is_mots : BoolProperty(name="Mots", description="Needs to be checked for MotS assets", default=False)
-    palette_file : StringProperty(default="01narsh.cmp")
+    in_text_editor : BoolProperty(
+        name="file in Text Editor",
+        description="File is additionally loaded into blender's Text Editor",
+        default=False
+        )
+    
+    is_mots : EnumProperty(
+        name="Mots",
+        description="Needs to be selected for 3DO assets",
+        items=(
+            ("DFJK", "DF:JK 3DO", ""),
+            ("MOTS", "MotS 3DO", "")
+        ),
+        default="DFJK"
+        )
+
+    palette_file : StringProperty(
+        default="01narsh.cmp"
+        )
 
     def invoke(self, context, event):
         global gob
@@ -271,10 +312,11 @@ class POPUP_OT_gob_browser(Operator):
         for item in gob.get_gobed_files().items():
             entry = self.file_entries.add()
             entry.name = item[0]
-            entry.size = int(item[1][1])>>10
+            entry.size = item[1][1]/1024
 
-        for item in gob.get_gobed_files().items():
-            print(item[1])
+
+        dir_entry = self.dir_entries.add()
+        dir_entry.name = "folder (WIP)"
  
         return context.window_manager.invoke_props_dialog(self, width=600)      # with "OK" button for now
 
@@ -283,13 +325,54 @@ class POPUP_OT_gob_browser(Operator):
         layout = self.layout
         
         layout.label(text = self.filepath, icon = 'FILE_ARCHIVE')
-        layout.template_list("GOB_UL_List", "The_List", self, "file_entries", self, "list_index", rows=25)
+        
+        split_1 = layout.split(factor=0.25)
+
+        split_1.row().template_list(
+            listtype_name = "GOB_UL_Dir_List",
+            list_id = "The_Dir_List",
+            dataptr = self,
+            propname = "dir_entries",
+            active_dataptr = self,
+            active_propname = "dir_index",
+            rows = 25,
+
+        )
+
+        split_1.row().template_list(
+            listtype_name = "GOB_UL_List",
+            list_id = "The_List",
+            dataptr = self,
+            propname = "file_entries",
+            active_dataptr = self,
+            active_propname = "list_index",
+            rows = 25
+            )
 
         layout.label(text="Preferences")
+
         split = layout.split()
 
-        split.prop(self, "is_mots")
-        split.prop(self, "in_text_editor",)
+        col_text = split.row()
+        col_bool = split.row()
+
+
+        filename = self.file_entries[self.list_index].name
+        ext = filename.split(".")[-1]
+
+        if ext == "mat":
+            col_text.enabled = False
+        else:
+            col_text.enabled = True
+
+        if ext == "3do":
+            col_bool.enabled = True
+        else:
+            col_bool.enabled = False
+
+        col_text.prop(self, "in_text_editor")
+        col_bool.prop(self, property="is_mots", expand=True)
+
 
     def execute(self, context):
         global gob
@@ -306,6 +389,12 @@ class POPUP_OT_gob_browser(Operator):
         except:
             pass
 
+        motsflag = True
+        if self.is_mots == "MOTS":
+            motsflag = True
+        else:
+            motsflag = False
+
         if self.in_text_editor:
             text = bpy.data.texts.new(filename)
             text.write(ungobed_file.decode("ascii"))
@@ -320,7 +409,7 @@ class POPUP_OT_gob_browser(Operator):
             self.report({'INFO'}, "Level \"" + filename[:-4] + "\" imported")
 
         elif ext == "3do":
-            thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, self.is_mots)
+            thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, motsflag)
             thing.import_Thing()
             self.report({'INFO'}, "Object \"" + filename[:-4] + "\" imported")
 
@@ -342,14 +431,18 @@ def import_jkl_button(self, context):
 def import_gob_button(self, context):
     self.layout.operator(ImportGOBfile.bl_idname, text="JK/MotS Archive (.gob/.goo)")
 
+
+
 def register():
 
     bpy.utils.register_class(JKLAddon_Prefs)
     bpy.utils.register_class(ImportJKLfile)
     bpy.utils.register_class(ImportGOBfile)
-    bpy.utils.register_class(FileItem)
+    bpy.utils.register_class(File_Item)
+    bpy.utils.register_class(Dir_Item)
     bpy.utils.register_class(POPUP_OT_gob_browser)
     bpy.utils.register_class(GOB_UL_List)
+    bpy.utils.register_class(GOB_UL_Dir_List)
     bpy.types.TOPBAR_MT_file_import.append(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.append(import_gob_button)
 
@@ -359,9 +452,11 @@ def unregister():
     bpy.utils.unregister_class(JKLAddon_Prefs)
     bpy.utils.unregister_class(ImportJKLfile)
     bpy.utils.unregister_class(ImportGOBfile)
-    bpy.utils.unregister_class(FileItem)
+    bpy.utils.unregister_class(File_Item)
+    bpy.utils.unregister_class(Dir_Item)
     bpy.utils.unregister_class(POPUP_OT_gob_browser)
     bpy.utils.unregister_class(GOB_UL_List)
+    bpy.utils.unregister_class(GOB_UL_Dir_List)
     bpy.types.TOPBAR_MT_file_import.remove(import_jkl_button)
     bpy.types.TOPBAR_MT_file_import.remove(import_gob_button)
 

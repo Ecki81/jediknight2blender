@@ -607,5 +607,5 @@ class Level:
         ######################################################################
 
         create_Level(vert_array, surf_list)
-        print("created level " + name)            
+          
         return {'FINISHED'}
