@@ -27,29 +27,36 @@ class Mat:
 
         # unpack uint32 from 4 bytes
 
-        NumOfTextures = unpack("L", self.mat[12:16])[0]     #NumOfTextures
+
+        Type = unpack("L", self.mat[8:12])[0]     # 0 = colors(TColorHeader) , 1= ?, 2= texture(TTextureHeader)
+        NumOfTextures = unpack("L", self.mat[12:16])[0]     # number of textures or colors
+        NumOfTextures1 = unpack("L", self.mat[16:20])[0]     # In color MATs, it's 0, in TX ones, it's equal to numOfTextures 
 
         textype = unpack("L", self.mat[76:80])[0]     #textype   (0=color, 8=texture)
         colornum = unpack("L", self.mat[80:84])[0]     #colornum   (Color index from the CMP palette, only color MATs)
 
-        CurrentTXNum = unpack("L", self.mat[112:116])[0]   #CurrentTXNum
-
-        size_offset = 0
-        pixel_offset = 0
-        
-        if NumOfTextures > 1:
-            size_offset = 10*4*(NumOfTextures-1)
-
-        size = unpack("LL", self.mat[116+size_offset:124+size_offset])
-
-        if NumOfTextures > 1:
-            pixel_offset = size_offset# -size[0]
-
-        
-        numMipMaps = unpack("L", self.mat[136:140])[0]  #NumMipMaps
+        if Type == 2:
 
 
-        if textype == 8:
+
+            CurrentTXNum = unpack("L", self.mat[112:116])[0]   #CurrentTXNum
+
+            size_offset = 0
+            pixel_offset = 0
+            
+            if NumOfTextures > 1:
+                size_offset = 10*4*(NumOfTextures-1)
+
+            size = unpack("LL", self.mat[116+size_offset:124+size_offset])
+
+            if NumOfTextures > 1:
+                pixel_offset = size_offset# -size[0]
+
+            
+            numMipMaps = unpack("L", self.mat[136:140])[0]  #NumMipMaps
+
+
+
 
             image = bpy.data.images.new(self.name, width=size[0], height=size[1])
             
