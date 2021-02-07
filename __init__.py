@@ -44,6 +44,7 @@ from .import_jkl import Level
 from .import_3do import Thing
 from .import_mat import Mat
 from .import_gob import Gob
+from .import_bm import Bm
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
 from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
@@ -397,7 +398,7 @@ class POPUP_OT_gob_browser(Operator):
 
         if self.in_text_editor:
             text = bpy.data.texts.new(filename)
-            text.write(ungobed_file.decode("ascii"))
+            text.write(ungobed_file.decode("iso-8859-1"))
             text.cursor_set(0)
 
         if ext == "jkl":
@@ -417,6 +418,10 @@ class POPUP_OT_gob_browser(Operator):
             mat = Mat(ungobed_file, ungobed_palette, False, filename, "BSDF", None)
             mat.import_Mat()
             self.report({'INFO'}, "Material \"" + filename[:-4] + "\" imported")
+
+        elif ext =="bm":
+            bm = Bm(ungobed_file, filename)
+            bm.import_Bm()
 
         else:
             self.report({'WARNING'}, ext.upper() + "s: only text supported")

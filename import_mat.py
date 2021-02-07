@@ -65,9 +65,9 @@ class Mat:
                 for y in range(size[1]):
             	          # 140: start of image array|  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
                     img_value = self.mat[140+pixel_offset+(size[0]*size[1])-((y+1)*size[0]-x)]               
-                    r = self.pal[64+(img_value*3)]/255
-                    g = self.pal[65+(img_value*3)]/255
-                    b = self.pal[66+(img_value*3)]/255
+                    r = self.pal[64+(img_value*3)]/256
+                    g = self.pal[65+(img_value*3)]/256
+                    b = self.pal[66+(img_value*3)]/256
                     if self.alpha:
                         table = 256*1                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
                         a = self.pal[832+table+img_value]/64           # 
