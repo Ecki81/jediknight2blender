@@ -3,10 +3,11 @@ import bpy
 
 class Bm:
 
-    def __init__(self, bm, name):
+    def __init__(self, bm, name, ext_pal):
 
         self.file = bm
         self.name = name
+        self.palette = ext_pal
 
     def import_Bm(self):
 
@@ -34,17 +35,13 @@ class Bm:
         img_start = 136
         palette_start = img_start + size_x * size_y
 
-        print(header)
-        print("NumBits: ", NumBits)
-        print(size_x, size_y)
+        print(NumBits, "Bit image")
+        if PalInc != 2:
+            print("palette not included")
+        else:
+            print("palette included")
+        print(Transparent)
 
-
-
-
-        palette = [None]
-        if PalInc == 2:
-            palette_flat = self.file[palette_start : palette_start + 256 * 3]
-            print(palette_flat)
 
         image = bpy.data.images.new(name=self.name, width=size_x, height=size_y)
 
@@ -52,11 +49,21 @@ class Bm:
         for x in range(size_x):
             for y in range(size_y):
                 pixel = (size_x * size_y) - (y * size_x) + x - size_x
-                image_value =  self.file[pixel + img_start]
-                r = self.file[palette_start + image_value * 3]/256
-                g = self.file[palette_start + 1 + image_value * 3]/256
-                b = self.file[palette_start + 2 + image_value * 3]/256
-                a = 1.0
+                pixel_value =  self.file[pixel + img_start]
+                if PalInc == 2: # Use rgb palette appended in image
+                    r = self.file[palette_start + pixel_value * 3]/256
+                    g = self.file[palette_start + 1 + pixel_value * 3]/256
+                    b = self.file[palette_start + 2 + pixel_value * 3]/256
+                    a = 1.0
+                    if pixel_value == Transparent:
+                        a = 0.0
+                else:           # Use external palette file
+                    r = self.palette[64 + (pixel_value*3)]/256
+                    g = self.palette[65 + (pixel_value*3)]/256
+                    b = self.palette[66 + (pixel_value*3)]/256
+                    a = 1.0
+                    if pixel_value == Transparent:
+                        a = 0.0
                 pixels[(y * size_x) + x] = [r, g, b, a]
 
         pixels = [chan for px in pixels for chan in px]

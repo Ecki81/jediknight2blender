@@ -228,6 +228,9 @@ class GOB_UL_List(UIList):
         elif ext == "jkl":
             custom_icon = 'SCENE_DATA'
             filetype = "Level"
+        elif ext == "bm":
+            custom_icon = 'IMAGE_RGB'
+            filetype = "Bitmap"
         elif ext == "cog":
             custom_icon = 'SETTINGS'
             filetype = "Cog Script"
@@ -287,6 +290,53 @@ class POPUP_OT_gob_browser(Operator):
     list_index : IntProperty(default=0)
     dir_index : IntProperty(default=0)
 
+    import_things: BoolProperty(
+        name="3do meshes",
+        description="Level things (.3do) are imported and placed, if found in .gob",
+        default=True,
+    )
+
+    import_mats: BoolProperty(
+        name="Materials",
+        description="Level and thing meshes are textured with materials, if found in .gob",
+        default=True,
+    )
+
+    import_intensities: BoolProperty(
+        name="Vertex Lighting",
+        description="Imports jkl light intensities as vertex color information. Vertex colors are added to material via multiplier node",
+        default=True,
+    )
+
+    import_alpha: BoolProperty(
+        name="Transparency",
+        description="Alpha from 1st transparency table in .cmp file",
+        default=True,
+    )
+
+    import_scale: FloatProperty(
+        name="Scale",
+        description="Default jk scale is 0.1 blender units; scale \"1.00\" multiplies jk with 10",
+        default=1.0,
+        min=0.0001,
+    )
+
+    select_shader: EnumProperty(
+        name="Shaders",
+        description="Lighting & material options",
+        items=(
+            ('BSDF', "BSDF material", "BSDF materials with transparency and emission map"),
+            ('VERT', "Vertex lighting", "Sith engine light intensities in vertex color channel, multiplied with textures in shader"),
+        ),
+        default='VERT',
+    )
+
+    import_sector_info: BoolProperty(
+        name="Sector information (Collection: Sectors)",
+        description="Display empties w/ sector properties in separate collection",
+        default=False,
+    )
+
     in_text_editor : BoolProperty(
         name="file in Text Editor",
         description="File is additionally loaded into blender's Text Editor",
@@ -310,14 +360,18 @@ class POPUP_OT_gob_browser(Operator):
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
-        for item in gob.get_gobed_files().items():
+        for item in gob.get_gobed_paths().items():
             entry = self.file_entries.add()
-            entry.name = item[0]
+            entry.name = item[0].split('\\')[-1]
             entry.size = item[1][1]/1024
 
+        # for directory in gob.get_gobed_paths().items():
+        #     dir_entry = self.dir_entries.add()
+        #     dir_entry.name = directory[0].split('\\')[0]
 
-        dir_entry = self.dir_entries.add()
-        dir_entry.name = "folder (WIP)"
+        for dir in range(0,5):
+            dir_entry = self.dir_entries.add()
+            dir_entry.name = "example folder " + str(dir)
  
         return context.window_manager.invoke_props_dialog(self, width=600)      # with "OK" button for now
 
@@ -356,7 +410,9 @@ class POPUP_OT_gob_browser(Operator):
 
         col_text = split.row()
         col_bool = split.row()
-
+        jkl_prefs_col = layout.column()
+        row_1 =  jkl_prefs_col.split().row()
+        row_2 =  jkl_prefs_col.split().row()
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
@@ -371,15 +427,31 @@ class POPUP_OT_gob_browser(Operator):
         else:
             col_bool.enabled = False
 
+        if ext == "jkl":
+            jkl_prefs_col.enabled = True
+        else:
+            jkl_prefs_col.enabled = False
+
         col_text.prop(self, "in_text_editor")
         col_bool.prop(self, property="is_mots", expand=True)
+
+        row_1.prop(self, "import_things")
+        row_1.prop(self, "import_mats")
+        row_1.prop(self, "import_intensities")
+        row_1.prop(self, "import_alpha")
+        row_2.prop(self, "import_sector_info")
+        row_2.prop(self, "import_scale")
+        row_2.prop(self, "select_shader")
+
 
 
     def execute(self, context):
         global gob
 
         prefs = bpy.context.preferences.addons[__name__].preferences
-        gob_path = self.filepath
+
+        jkdf_res = prefs.jkdf_path + "\Res2.gob"
+        mots_res = prefs.mots_path + "\JKMRES.GOO"
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
@@ -402,11 +474,9 @@ class POPUP_OT_gob_browser(Operator):
             text.cursor_set(0)
 
         if ext == "jkl":
-            level = Level(self.filepath + "\\" + filename, True, True, True, True, 1.0, "VERT", False)
+            level = Level(self.filepath + "\\" + filename, self.import_things, self.import_mats, self.import_intensities, self.import_scale, self.import_scale, "VERT", self.import_sector_info)
             level.open_from_gob(ungobed_file)
             level.import_Level()
-            # prefs.jkdf_path
-            # prefs.mots_path
             self.report({'INFO'}, "Level \"" + filename[:-4] + "\" imported")
 
         elif ext == "3do":
@@ -420,11 +490,14 @@ class POPUP_OT_gob_browser(Operator):
             self.report({'INFO'}, "Material \"" + filename[:-4] + "\" imported")
 
         elif ext =="bm":
-            bm = Bm(ungobed_file, filename)
+            res_gob = Gob(jkdf_res)
+            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")
+            bm = Bm(ungobed_file, filename, ungobed_ui_palette)
             bm.import_Bm()
 
         else:
             self.report({'WARNING'}, ext.upper() + "s: only text supported")
+
 
         return {'FINISHED'}
 

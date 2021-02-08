@@ -11,6 +11,7 @@ class Gob:
         self.data = f.read()
         f.close()
         self.toc = {}
+        self.path_toc = {}
         self.jkls = []
         
     def set_toc(self):
@@ -31,6 +32,22 @@ class Gob:
         
         self.toc = toc
 
+    def set_paths_toc(self):
+        first_size_offset, first_offset, file_count, offset, length = unpack('LLLLL', self.data[4:24])
+
+        i = 0
+        path_toc = {}
+        while i < file_count:
+            byte_offset = 24+i*136
+            file_path = unpack('<128s', self.data[byte_offset:byte_offset+128])
+            file_offset, length = unpack('LL', self.data[byte_offset-8:byte_offset])
+            file_path_decode = file_path[0].decode('ISO-8859-1') # bin to str
+            file_path = file_path_decode.split('\x00',1)[0] # removed \x00
+            path_toc[file_path] = (file_offset, length)
+            i += 1
+        
+        self.path_toc = path_toc
+
 
     def ungob(self, file):
         '''takes string of file in GOB/GOO ("00tabl.3do"), returns extracted file'''
@@ -44,6 +61,11 @@ class Gob:
         '''returns a list of files names'''
         self.set_toc()
         return self.toc
+
+    def get_gobed_paths(self):
+
+        self.set_paths_toc()
+        return self.path_toc
 
 
 
