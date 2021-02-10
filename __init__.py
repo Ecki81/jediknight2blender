@@ -490,7 +490,7 @@ class POPUP_OT_gob_browser(Operator):
 
         elif ext =="bm":
             res_gob = Gob(jkdf_res)
-            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")
+            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp") # uicolormap.cmp
             bm = Bm(ungobed_file, filename, ungobed_ui_palette)
             bm.import_Bm()
 

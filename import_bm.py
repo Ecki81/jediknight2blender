@@ -41,34 +41,18 @@ class Bm:
         image = bpy.data.images.new(name=self.name, width=size_x, height=size_y)
 
 
+        img = np.frombuffer(self.file, dtype=np.uint8 ,count=img_size, offset=img_start).reshape((size_y, size_x))
+        img_matrix = np.flipud(img)
 
-        if PalInc == 2: # Use rgb palette appended in image
-
-            img = np.frombuffer(self.file, dtype=np.uint8 ,count=img_size, offset=img_start).reshape((size_y, size_x))  # form numpy 2d numpy array with pixel index integers
-            img_matrix = np.flipud(img)                                                                                 # flip 2d matrix upside down (JK BMs start in the top-left corner)
-            pal = np.frombuffer(self.file, dtype=np.uint8 ,count=256*3, offset=palette_start).reshape((256,3)) / 256    # form numpy 2d array with RGB palette values
-            pal_alpha = np.hstack((pal, np.ones((256,1))))                                                              # stack 4th value for alpha channel behind rgb values
-
-            col_image = pal_alpha[img_matrix]                                                                           # reference rgb values with pixel indices
-            pixels = col_image.flatten()                                                                                # blender needs a flat list (r, g, b, a, r, g, b, a, ...)
-
-
+        if PalInc == 2:
+            pal = np.frombuffer(self.file, dtype=np.uint8 ,count=256*3, offset=palette_start).reshape((256,3)) / 256
         else:
+            pal = np.frombuffer(self.palette, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 256
+            
+        pal_add_channel = np.hstack((pal, np.ones((256,1))))
 
-            pixels = [None] * size_x * size_y
-            for x in range(size_x):
-                for y in range(size_y):
-                    pixel = (size_x * size_y) - (y * size_x) + x - size_x
-                    pixel_value =  self.file[pixel + img_start]
-                    r = self.palette[64 + (pixel_value*3)]/256
-                    g = self.palette[65 + (pixel_value*3)]/256
-                    b = self.palette[66 + (pixel_value*3)]/256
-                    a = 1.0
-                    if pixel_value == Transparent:
-                        a = 0.0
-                    pixels[(y * size_x) + x] = [r, g, b, a]
-
-            pixels = [chan for px in pixels for chan in px]
+        col_image = pal_add_channel[img_matrix]
+        pixels = col_image.flatten()
 
 
         image.pixels = pixels

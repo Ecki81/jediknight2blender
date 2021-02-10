@@ -1,5 +1,6 @@
 from struct import unpack
 from . import jk_flags
+import numpy as np
 import bpy
 
 class Mat:
@@ -37,8 +38,6 @@ class Mat:
 
         if Type == 2:
 
-
-
             CurrentTXNum = unpack("L", self.mat[112:116])[0]   #CurrentTXNum
 
             size_offset = 0
@@ -56,30 +55,20 @@ class Mat:
             numMipMaps = unpack("L", self.mat[136:140])[0]  #NumMipMaps
 
 
-
-
             image = bpy.data.images.new(self.name, width=size[0], height=size[1])
+
+
+            img = np.frombuffer(self.mat, dtype=np.uint8 ,count=size[1] * size[0], offset=140+pixel_offset).reshape((size[1], size[0]))
+            img_matrix = np.flipud(img)
+
+            pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 256
+                
+            pal_add_channel = np.hstack((pal, np.ones((256,1))))
+
+            col_image = pal_add_channel[img_matrix]
+            pixels = col_image.flatten()
+
             
-            pixels = [None] * size[0] * size[1]
-            for x in range(size[0]):
-                for y in range(size[1]):
-            	          # 140: start of image array|  end of array |-|end of each line| -x:iterate through each pixel (two minuses go in right pixel direction)     
-                    img_value = self.mat[140+pixel_offset+(size[0]*size[1])-((y+1)*size[0]-x)]               
-                    r = self.pal[64+(img_value*3)]/256
-                    g = self.pal[65+(img_value*3)]/256
-                    b = self.pal[66+(img_value*3)]/256
-                    if self.alpha:
-                        table = 256*1                      # table size 256 * place of 1st transp table (0:color table, 1-63:light level tables, 64-319:transp tables)
-                        a = self.pal[832+table+img_value]/64           # 
-                    else:
-                        a = 1.0
-                    pixels[(y * size[0]) + x] = [r, g, b, a]
-
-
-            # flatten list
-            pixels = [chan for px in pixels for chan in px]
-
-            # assign pixels
             image.pixels = pixels
 
 
