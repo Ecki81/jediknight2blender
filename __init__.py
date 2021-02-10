@@ -369,9 +369,8 @@ class POPUP_OT_gob_browser(Operator):
         #     dir_entry = self.dir_entries.add()
         #     dir_entry.name = directory[0].split('\\')[0]
 
-        for dir in range(0,5):
-            dir_entry = self.dir_entries.add()
-            dir_entry.name = "example folder " + str(dir)
+        # for item in gob.get_gobed_paths().items():
+        #     directory = 
  
         return context.window_manager.invoke_props_dialog(self, width=600)      # with "OK" button for now
 
