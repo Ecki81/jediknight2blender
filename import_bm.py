@@ -40,19 +40,33 @@ class Bm:
 
         image = bpy.data.images.new(name=self.name, width=size_x, height=size_y)
 
+        if NumBits == 16:
+            flipped_img16 = np.frombuffer(self.file, dtype=np.uint16 ,count=img_size, offset=img_start).reshape((size_y, size_x))
+            img = np.flipud(flipped_img16)
+            flat_img16 = img.reshape((img_size, 1))
 
-        img = np.frombuffer(self.file, dtype=np.uint8 ,count=img_size, offset=img_start).reshape((size_y, size_x))
-        img_matrix = np.flipud(img)
+            r = ((flat_img16 & 0b1111100000000000) >> 11) / 31
+            g = ((flat_img16 & 0b0000011111100000) >> 6) / 31
+            b = (flat_img16 & 0b0000000000011111) / 31
+            a = np.ones((img_size, 1))
 
-        if PalInc == 2:
-            pal = np.frombuffer(self.file, dtype=np.uint8 ,count=256*3, offset=palette_start).reshape((256,3)) / 256
-        else:
-            pal = np.frombuffer(self.palette, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 256
+            col_image = np.hstack((r, g, b, a))
+            pixels = col_image.flatten()
+
             
-        pal_add_channel = np.hstack((pal, np.ones((256,1))))
+        else:
+            img = np.frombuffer(self.file, dtype=np.uint8 ,count=img_size, offset=img_start).reshape((size_y, size_x))
+            img_matrix = np.flipud(img)
 
-        col_image = pal_add_channel[img_matrix]
-        pixels = col_image.flatten()
+            if PalInc == 2:
+                pal = np.frombuffer(self.file, dtype=np.uint8 ,count=256*3, offset=palette_start).reshape((256,3)) / 255
+            else:
+                pal = np.frombuffer(self.palette, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 255
+                
+            pal_add_channel = np.hstack((pal, np.ones((256,1))))
+
+            col_image = pal_add_channel[img_matrix]
+            pixels = col_image.flatten()
 
 
         image.pixels = pixels
