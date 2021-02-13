@@ -48,7 +48,7 @@ class Bm:
             r = ((flat_img16 & 0b1111100000000000) >> 11) / 31
             g = ((flat_img16 & 0b0000011111100000) >> 6) / 31
             b = (flat_img16 & 0b0000000000011111) / 31
-            a = np.ones((img_size, 1))
+            a = (flat_img16 != Transparent).astype(int)
 
             col_image = np.hstack((r, g, b, a))
             pixels = col_image.flatten()
@@ -63,9 +63,11 @@ class Bm:
             else:
                 pal = np.frombuffer(self.palette, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 255
                 
-            pal_add_channel = np.hstack((pal, np.ones((256,1))))
+            a = np.ones((256,1))
+            a[Transparent][0] = 0.0
+            pal_alpha_channel = np.hstack((pal, a))
 
-            col_image = pal_add_channel[img_matrix]
+            col_image = pal_alpha_channel[img_matrix]
             pixels = col_image.flatten()
 
 
