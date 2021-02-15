@@ -45,6 +45,7 @@ from .import_3do import Thing
 from .import_mat import Mat
 from .import_gob import Gob
 from .import_bm import Bm
+from .import_sft import Sft
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
 from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
@@ -231,6 +232,9 @@ class GOB_UL_List(UIList):
         elif ext == "bm":
             custom_icon = 'IMAGE_RGB'
             filetype = "Bitmap"
+        elif ext == "sft":
+            custom_icon = 'FILE_FONT'
+            filetype = "Font"
         elif ext == "cog":
             custom_icon = 'SETTINGS'
             filetype = "Cog Script"
@@ -493,6 +497,12 @@ class POPUP_OT_gob_browser(Operator):
             ungobed_ui_palette = res_gob.ungob("uicolormap.cmp") # uicolormap.cmp
             bm = Bm(ungobed_file, filename, ungobed_ui_palette)
             bm.import_Bm()
+
+        elif ext =="sft":
+            res_gob = Gob(jkdf_res)
+            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp") # uicolormap.cmp
+            sft = Sft(ungobed_file, filename, ungobed_ui_palette)
+            sft.import_Sft()
 
         else:
             self.report({'WARNING'}, ext.upper() + "s: only text supported")
