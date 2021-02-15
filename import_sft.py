@@ -6,7 +6,7 @@ class Sft:
     def __init__(self, sft, name, ext_pal):
 
         self.file = sft
-        self.name = name
+        self.name = name.replace(".sft", "")
         self.palette = ext_pal
 
 

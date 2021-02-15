@@ -68,9 +68,10 @@ class JKLAddon_Prefs(AddonPreferences):
     )
 
 
+
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Please specify the \"Resource\" directories for DF:JK and/or MotS")
+        layout.label(text="Please specify the \"Resource\" directories for DF:JK and / or MotS")
         layout.prop(self, "jkdf_path")
         layout.prop(self, "mots_path")
 
@@ -483,7 +484,7 @@ class POPUP_OT_gob_browser(Operator):
             self.report({'INFO'}, "Level \"" + filename[:-4] + "\" imported")
 
         elif ext == "3do":
-            thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, motsflag)
+            thing = Thing(ungobed_file, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 10.0, filename, motsflag, True)
             thing.import_Thing()
             self.report({'INFO'}, "Object \"" + filename[:-4] + "\" imported")
 

@@ -9,7 +9,7 @@ class Mat:
         initializes a material, takes material file name and palette file name (currently unused)
         '''
         self.mat = mat
-        self.name = name
+        self.name = name.replace(".mat", "")
         self.pal = pal
         self.transp = False
         self.alpha = alpha
@@ -24,19 +24,22 @@ class Mat:
         '''
         reads an image from a JK mat file and its corresponding pal file and returns a material with diffuse map
         '''
-        self.name = self.name.replace(".mat", "")
-
-        # unpack uint32 from 4 bytes
+        t_mat_header = unpack("ccccLLLLLLLLLLLLLLLLLLLLLLLL", self.mat[0:100])
 
 
-        Type = unpack("L", self.mat[8:12])[0]     # 0 = colors(TColorHeader) , 1= ?, 2= texture(TTextureHeader)
-        NumOfTextures = unpack("L", self.mat[12:16])[0]     # number of textures or colors
-        NumOfTextures1 = unpack("L", self.mat[16:20])[0]     # In color MATs, it's 0, in TX ones, it's equal to numOfTextures 
+        # print(t_mat_header)
 
-        textype = unpack("L", self.mat[76:80])[0]     #textype   (0=color, 8=texture)
-        colornum = unpack("L", self.mat[80:84])[0]     #colornum   (Color index from the CMP palette, only color MATs)
+        ver = t_mat_header[4]
+        Type = t_mat_header[5]
+        NumOfTextures = t_mat_header[6]
+        NumOfTextures1 = t_mat_header[7]
+
+        textype = t_mat_header[22]
+        colornum = t_mat_header[23]
 
         if Type == 2:
+
+            t_tex_header = unpack("LLLLLLLL", self.mat[100:132])
 
             CurrentTXNum = unpack("L", self.mat[112:116])[0]   #CurrentTXNum
 
@@ -49,7 +52,7 @@ class Mat:
             size = unpack("LL", self.mat[116+size_offset:124+size_offset])
 
             if NumOfTextures > 1:
-                pixel_offset = size_offset# -size[0]
+                pixel_offset = size_offset
 
             
             numMipMaps = unpack("L", self.mat[136:140])[0]  #NumMipMaps
@@ -60,11 +63,8 @@ class Mat:
 
             img = np.frombuffer(self.mat, dtype=np.uint8 ,count=size[1] * size[0], offset=140+pixel_offset).reshape((size[1], size[0]))
             img_matrix = np.flipud(img)
-
             pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 256
-                
             pal_add_channel = np.hstack((pal, np.ones((256,1))))
-
             col_image = pal_add_channel[img_matrix]
             pixels = col_image.flatten()
 
@@ -73,6 +73,7 @@ class Mat:
 
 
             # write image
+
             image.filepath_raw = "/tmp/" + self.name + ".png"
             image.file_format = 'PNG'
             image.save()
@@ -114,48 +115,6 @@ class Mat:
                 mixColor.inputs[0].default_value = 0.98
                 mixColor.location = -250, 150
 
-                # # sith engine sky emulation
-                # # create nodes
-                # mapping = mat.node_tree.nodes.new('ShaderNodeMapping')
-                # mapping.vector_type = 'TEXTURE'
-                # tex_coord = mat.node_tree.nodes.new('ShaderNodeTexCoord')
-                # com_xyz = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
-                # arctan2a = mat.node_tree.nodes.new('ShaderNodeMath')
-                # arctan2a.operation = 'ARCTAN2'
-                # divide = mat.node_tree.nodes.new('ShaderNodeMath')
-                # divide.operation = 'DIVIDE'
-                # divide.inputs[0].default_value[1] = -2.0
-                # arctan2b = mat.node_tree.nodes.new('ShaderNodeMath')
-                # arctan2b.operation = 'ARCTAN2'
-                # sep_xyza = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
-                # sep_xyzb = mat.node_tree.nodes.new('ShaderNodeSeparateXYZ')
-                # vec_transa = mat.node_tree.nodes.new('ShaderNodeVectorTransform')
-                # vec_transa.convert_from = 'CAMERA'
-                # vec_transa.convert_to = 'WORLD'
-                # vec_transa.inputs[0].default_value[0] = 1.0
-                # vec_transa.inputs[0].default_value[1] = 0.0
-                # vec_transa.inputs[0].default_value[2] = 0.0
-                # vec_transb = mat.node_tree.nodes.new('ShaderNodeVectorTransform')
-                # vec_transb.convert_from = 'WORLD'
-                # vec_transb.convert_to = 'CAMERA'
-                # vec_transb.inputs[0].default_value[0] = 0.0
-                # vec_transb.inputs[0].default_value[1] = 1.0
-                # vec_transb.inputs[0].default_value[2] = 0.0
-                # # connect sky nodes
-                # mat.node_tree.links.new(texImage.inputs[0], mapping.outputs[0])
-                # mat.node_tree.links.new(mapping.inputs[0], tex_coord.outputs[5])
-                # mat.node_tree.links.new(mapping.inputs[1], com_xyz.outputs[0])
-                # mat.node_tree.links.new(com_xyz.inputs[0], divide.outputs[0])
-                # mat.node_tree.links.new(divide.inputs[0], arctan2a.outputs[0])
-                # mat.node_tree.links.new(arctan2a.inputs[0], sep_xyza.outputs[0])
-                # mat.node_tree.links.new(arctan2a.inputs[1], sep_xyza.outputs[1])
-                # mat.node_tree.links.new(sep_xyza.inputs[0], vec_transa.outputs[0])
-                # mat.node_tree.links.new(com_xyz.inputs[1], arctan2b.outputs[0])
-                # mat.node_tree.links.new(arctan2b.inputs[0], sep_xyzb.outputs[1])
-                # mat.node_tree.links.new(arctan2b.inputs[1], sep_xyzb.outputs[2])
-                # mat.node_tree.links.new(sep_xyzb.inputs[0], vec_transb.outputs[0])
-
-
                 # # assign texture
                 
                 texImage.image = image
@@ -166,7 +125,7 @@ class Mat:
 
 
 
-            
+        
         else:
             
             # create color MAT

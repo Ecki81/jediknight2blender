@@ -7,7 +7,7 @@ class Bm:
     def __init__(self, bm, name, ext_pal):
 
         self.file = bm
-        self.name = name
+        self.name = name.replace(".bm", "")
         self.palette = ext_pal
 
     def import_Bm(self):

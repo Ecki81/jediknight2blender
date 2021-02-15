@@ -503,14 +503,14 @@ class Level:
                 try:
                     ungobed_file = gob.ungob(mesh[0])
                     if copy_flag:
-                        thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), self.scale, mesh_name, motsflag)
+                        thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), self.scale, mesh_name, motsflag, False)
                         if mesh[0] in things_names:
                             obj_copy = thing.copy_Thing(things_names[mesh[0]])
                         else:
                             obj = thing.import_Thing()
                             things_names[mesh[0]] = obj # fill dictionary with object file names and blender objects
                     else:
-                        thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), self.scale, mesh_name, motsflag)
+                        thing = Thing(ungobed_file, float(mesh[1]),float(mesh[2]),float(mesh[3]), float(mesh[4]), float(mesh[5]), float(mesh[6]), self.scale, mesh_name, motsflag, False)
                         thing.import_Thing()
                 except:
                     pass

@@ -1,10 +1,12 @@
 import re
 import bpy, bmesh
 from math import *
+from .import_gob import Gob
+from .import_mat import Mat
 
 class Thing:
 
-    def __init__(self, file, x, y, z, pitch, yaw, roll, scale, name, motsflag):
+    def __init__(self, file, x, y, z, pitch, yaw, roll, scale, name, motsflag, import_textures):
         '''
         Initializes a Thing with name (filename.3do), xyz position and rotation offset
         '''
@@ -18,6 +20,7 @@ class Thing:
         self.name = name
         self.scale = scale
         self.motsflag = motsflag
+        self.import_textures = import_textures
 
 
     def tree(self, hierarchy):
@@ -99,6 +102,18 @@ class Thing:
                 matList.append(matLine[2].replace(".mat", ""))
 
             i+=1
+
+        if self.import_textures:
+            prefs = bpy.context.preferences.addons["import_jkl"].preferences
+            gob = Gob(prefs.jkdf_path + "\Res2.gob")
+            ungobed_palette = gob.ungob("01narsh.cmp")
+            for texture in matList:
+                if bpy.data.materials.get(texture):
+                    continue
+                else:
+                    ungobed_file = gob.ungob(texture.lower()+".mat")
+                    mat = Mat(ungobed_file, ungobed_palette, False, texture.lower(), "BSDF", None)
+                    mat.import_Mat()
 
 
 
@@ -366,7 +381,7 @@ class Thing:
                     pass
 
             # offset has to be applied to root object
-            ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)     # wrong! translation has to be relative to parent object. this only works in hierarchy with depth of 1
+            ob.location = (x + self.xOffs, y + self.yOffs, z + self.zOffs)
 
 
             # ob.rotation_euler.rotate_axis("Z", radians(yaw + self.yawOffs))              # Correct order of local rotation axes (yaw, pitch, roll)
