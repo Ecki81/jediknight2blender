@@ -1,4 +1,6 @@
 {
-    "python.linting.enabled": false,
-    "python.pythonPath": "c:\\Program Files\\Blender Foundation\\Blender 2.91\\2.91\\python\\bin\\python.exe"
+    "python.linting.enabled": true,
+    "python.pythonPath": "c:\\Program Files\\Blender Foundation\\Blender 2.91\\2.91\\python\\bin\\python.exe",
+    "python.linting.pylintEnabled": false,
+    "python.linting.pycodestyleEnabled": true
 }

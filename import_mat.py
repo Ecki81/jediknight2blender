@@ -3,10 +3,12 @@ from . import jk_flags
 import numpy as np
 import bpy
 
+
 class Mat:
     def __init__(self, mat, pal, alpha, name, shader, flag):
         '''
-        initializes a material, takes material file name and palette file name (currently unused)
+        initializes a material, takes material file name
+        and palette file name (currently unused)
         '''
         self.mat = mat
         self.name = name.replace(".mat", "")
@@ -22,12 +24,10 @@ class Mat:
 
     def import_Mat(self):
         '''
-        reads an image from a JK mat file and its corresponding pal file and returns a material with diffuse map
+        reads an image from a JK mat file and its corresponding pal file
+        and returns a material with diffuse map
         '''
         t_mat_header = unpack("ccccLLLLLLLLLLLLLLLLLLLLLLLL", self.mat[0:100])
-
-
-        # print(t_mat_header)
 
         ver = t_mat_header[4]
         Type = t_mat_header[5]
@@ -45,7 +45,7 @@ class Mat:
 
             size_offset = 0
             pixel_offset = 0
-            
+
             if NumOfTextures > 1:
                 size_offset = 10*4*(NumOfTextures-1)
 
@@ -54,7 +54,7 @@ class Mat:
             if NumOfTextures > 1:
                 pixel_offset = size_offset
 
-            
+
             numMipMaps = unpack("L", self.mat[136:140])[0]  #NumMipMaps
 
 
@@ -63,8 +63,10 @@ class Mat:
 
             img = np.frombuffer(self.mat, dtype=np.uint8 ,count=size[1] * size[0], offset=140+pixel_offset).reshape((size[1], size[0]))
             img_matrix = np.flipud(img)
-            pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 256
-            pal_add_channel = np.hstack((pal, np.ones((256,1))))
+            col_pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 255
+            trans_pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256, offset=64 + (256*3)).reshape((256,1)) / 63
+            pal_add_channel = np.hstack((col_pal, trans_pal))
+            # pal_add_channel = np.hstack((col_pal, np.ones((256,1))))
             col_image = pal_add_channel[img_matrix]
             pixels = col_image.flatten()
 
