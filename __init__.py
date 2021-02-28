@@ -113,6 +113,8 @@ class Dir_Item(PropertyGroup):
 
     name: StringProperty()
 
+    indent: IntProperty()
+
 
 class GOB_UL_List(UIList):
     '''List type for GOB file display'''
@@ -125,6 +127,9 @@ class GOB_UL_List(UIList):
         if ext == "3do":
             custom_icon = 'MATCUBE'
             filetype = "3D Object"
+        elif ext == "key":
+            custom_icon = 'ANIM'
+            filetype = "Animation"
         elif ext == "mat":
             custom_icon = 'TEXTURE'
             filetype = "Texture"
@@ -176,7 +181,13 @@ class GOB_UL_Dir_List(UIList):
                   active_data, active_property, index):
 
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.label(text=item.name, icon='FILE_FOLDER')
+            if item.indent > 0:
+                split = layout.split(factor=0.05*item.indent)
+                split_indent = split.row()
+                split_dir = split.row()
+                split_dir.label(text=item.name, icon='FILE_FOLDER')
+            else:
+                layout.label(text=item.name, icon='FILE_FOLDER')
         elif self.layout_type in {'GRID'}:
             layout.label(text="", icon='FILE_FOLDER')
 
@@ -298,6 +309,7 @@ class POPUP_OT_gob_browser(Operator):
                     print( '  ' * indent + str(key))
                     dir_entry = self.dir_entries.add()
                     dir_entry.name = str(key)
+                    dir_entry.indent = indent
                     if isinstance(value, dict):
                         prettify(value, indent+1)
                     else:
