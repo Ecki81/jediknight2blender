@@ -23,6 +23,7 @@ from .import_mat import Mat
 from .import_gob import Gob
 from .import_bm import Bm
 from .import_sft import Sft
+from .import_cmp import Cmp
 from bpy_extras.io_utils import ImportHelper
 from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
 from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
@@ -476,6 +477,10 @@ class POPUP_OT_gob_browser(Operator):
             ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")  # uicolormap.cmp
             sft = Sft(ungobed_file, filename, ungobed_ui_palette)
             sft.import_Sft()
+            
+        elif ext == "cmp":
+            colormap = Cmp(ungobed_file, filename)
+            colormap.import_Cmp()
 
         else:
             self.report({'WARNING'}, ext.upper() + "s: only text supported")
