@@ -240,7 +240,7 @@ class POPUP_OT_gob_browser(Operator):
     )
 
     select_shader: EnumProperty(
-        name="Shaders",
+        name="Shader",
         description="Lighting & material options",
         items=(
             ('BSDF', "BSDF material", "BSDF materials with transparency and emission map"),
@@ -250,8 +250,8 @@ class POPUP_OT_gob_browser(Operator):
     )
 
     import_sector_info: BoolProperty(
-        name="Sector information (Collection: Sectors)",
-        description="Display empties w/ sector properties in separate collection",
+        name="Sectors info",
+        description="Display empties w/ sector properties in separate Collection",
         default=False,
     )
 
@@ -325,7 +325,7 @@ class POPUP_OT_gob_browser(Operator):
         prettify(main_dict)
 
         # with "OK" button for now
-        return context.window_manager.invoke_props_dialog(self, width=600)
+        return context.window_manager.invoke_props_dialog(self, width=800)
 
     def draw(self, context):
         layout = self.layout
@@ -355,44 +355,49 @@ class POPUP_OT_gob_browser(Operator):
             rows=25
             )
 
-        layout.label(text="Preferences")
+        layout.label(text="Import Preferences", icon="IMPORT")
 
         split = layout.split()
 
-        col_text = split.row()
-        col_bool = split.row()
-        jkl_prefs_col = layout.column()
-        row_1 = jkl_prefs_col.split().row()
-        row_2 = jkl_prefs_col.split().row()
+        col_jkl = split.column().box()
+        col_thing = split.column().box()
+        col_bitmaps = split.column().box()
+        col_misc = split.column().box()
+
+        col_jkl.label(text="Level")
+        col_thing.label(text="3do")
+        col_bitmaps.label(text="Bitmaps (mat, bm, sft)")
+        col_misc.label(text="Misc")
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
 
-        if ext == "mat":
-            col_text.enabled = False
-        else:
-            col_text.enabled = True
+        # if ext == "mat":
+        #     col_text.enabled = False
+        # else:
+        #     col_text.enabled = True
 
         if ext == "3do":
-            col_bool.enabled = True
+            col_thing.enabled = True
         else:
-            col_bool.enabled = False
+            col_thing.enabled = False
 
         if ext == "jkl":
-            jkl_prefs_col.enabled = True
+            col_jkl.enabled = True
         else:
-            jkl_prefs_col.enabled = False
+            col_jkl.enabled = False
 
-        col_text.prop(self, "in_text_editor")
-        col_bool.prop(self, property="is_mots", expand=True)
+        layout.prop(self, "in_text_editor")
 
-        row_1.prop(self, "import_things")
-        row_1.prop(self, "import_mats")
-        row_1.prop(self, "import_intensities")
-        row_1.prop(self, "import_alpha")
-        row_2.prop(self, "import_sector_info")
-        row_2.prop(self, "import_scale")
-        row_2.prop(self, "select_shader")
+        col_thing.prop(self, property="is_mots", expand=True)
+
+        col_jkl.prop(self, "import_things")
+        col_jkl.prop(self, "import_mats")
+        col_jkl.prop(self, "import_intensities")
+        col_jkl.prop(self, "import_alpha")
+        col_jkl.prop(self, "import_sector_info")
+        col_jkl.prop(self, "import_scale")
+        col_jkl.prop(self, "select_shader")
 
     def execute(self, context):
         global gob
@@ -419,7 +424,12 @@ class POPUP_OT_gob_browser(Operator):
 
         if self.in_text_editor:
             text = bpy.data.texts.new(filename)
-            text.write(ungobed_file.decode("iso-8859-1"))
+
+            # replace break characters, otherwise
+            # line feed & carriage return bytes
+            # are interpreted as a 16bit wide box character
+            decoded_text = ungobed_file.decode("iso-8859-1").splitlines()
+            text.write('\n'.join(decoded_text))
             text.cursor_set(0)
 
         if ext == "jkl":
