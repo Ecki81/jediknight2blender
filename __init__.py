@@ -73,6 +73,29 @@ class JKLAddon_Prefs(AddonPreferences):
         default=""
     )
 
+    def list_palettes(self, context):
+
+        jkdf_res = self.jkdf_path + "\Res2.gob"
+        mots_res = self.mots_path + "\JKMRES.GOO"
+
+        palette_list = []
+
+        gob = Gob(jkdf_res)
+        palette_list.append(("default", "default", "default palette defined in Level"),)
+        for item in gob.get_gobed_paths().items():
+            name = Path(item[0]).parts[-1]
+            if name[-3:] == "cmp":
+                palette_tuple = (name, name, "")
+                palette_list.append(palette_tuple)
+
+        return palette_list
+
+    palettes: EnumProperty(
+        name="CMP Palette",
+        items=list_palettes,
+        description="Change to override default texture palette"
+        )
+
     def draw(self, context):
         layout = self.layout
         layout.label(text="Please locate the \"Resource\" directories for DF:JK and / or MotS")
@@ -205,6 +228,7 @@ class POPUP_OT_gob_browser(Operator):
     filepath: StringProperty()
     file_entries: CollectionProperty(type=File_Item)
     dir_entries: CollectionProperty(type=Dir_Item)
+    dir_collections: CollectionProperty(type=Dir_Item) # for nested file collections
     list_index: IntProperty(default=0)
     dir_index: IntProperty(default=0)
 
@@ -243,8 +267,15 @@ class POPUP_OT_gob_browser(Operator):
         name="Shader",
         description="Lighting & material options",
         items=(
-            ('BSDF', "BSDF material", "BSDF materials with transparency and emission map"),
-            ('VERT', "Vertex lighting", "Sith engine light intensities in vertex color channel, multiplied with textures in shader"),
+            (
+                'BSDF',
+                "BSDF material",
+                "BSDF materials with transparency and emission map"),
+            (
+                'VERT',
+                "Vertex lighting",
+                '''Sith engine light intensities in vertex color channel,
+                multiplied with textures in shader'''),
         ),
         default='VERT',
     )
@@ -256,13 +287,13 @@ class POPUP_OT_gob_browser(Operator):
     )
 
     in_text_editor: BoolProperty(
-        name="file in Text Editor",
-        description="File is additionally loaded into blender's Text Editor",
+        name="load into Text Editor",
+        description="Raw text gets loaded into blender's Text Editor, if possible",
         default=False
         )
     
     is_mots: EnumProperty(
-        name="Mots",
+        name="Source game",
         description="Needs to be selected for 3DO assets",
         items=(
             ("DFJK", "DF:JK 3DO", ""),
@@ -274,6 +305,7 @@ class POPUP_OT_gob_browser(Operator):
     palette_file: StringProperty(
         default="01narsh.cmp"
         )
+
 
     def invoke(self, context, event):
         global gob
@@ -305,23 +337,25 @@ class POPUP_OT_gob_browser(Operator):
             for key, value in d.items():
                 if key == FILE_MARKER:
                     if value:
-                        print( '  ' * indent + str(value))
+                        # print('  ' * indent + str(value))
+                        pass
                 else:
-                    print( '  ' * indent + str(key))
+                    # print('  ' * indent + str(key))
                     dir_entry = self.dir_entries.add()
                     dir_entry.name = str(key)
                     dir_entry.indent = indent
                     if isinstance(value, dict):
                         prettify(value, indent+1)
                     else:
-                        print( '  ' * (indent+1) + str(value))
+                        # print('  ' * (indent+1) + str(value))
+                        pass
 
         main_dict = defaultdict(dict, ((FILE_MARKER, []),))
         for item in gob.get_gobed_paths().items():
             item_posix = item[0].replace('\\', '/')
             attach(item_posix, main_dict)
             # print(item_posix)
-        
+
         prettify(main_dict)
 
         # with "OK" button for now
@@ -329,9 +363,9 @@ class POPUP_OT_gob_browser(Operator):
 
     def draw(self, context):
         layout = self.layout
-        
+
         layout.label(text=self.filepath, icon='FILE_ARCHIVE')
-        
+
         split_1 = layout.split(factor=0.25)
 
         split_1.row().template_list(
@@ -355,49 +389,44 @@ class POPUP_OT_gob_browser(Operator):
             rows=25
             )
 
-        layout.label(text="Import Preferences", icon="IMPORT")
+        layout.label(text="Import Preferences")
 
         split = layout.split()
 
-        col_jkl = split.column().box()
-        col_thing = split.column().box()
-        col_bitmaps = split.column().box()
-        col_misc = split.column().box()
+        col_jkl = split.column()
+        col_thing = split.column(heading="needs to be selected for proper import (WIP)")
+        col_bitmaps = split.column()
+        # col_misc = split.column().box()
 
-        col_jkl.label(text="Level")
-        col_thing.label(text="3do")
-        col_bitmaps.label(text="Bitmaps (mat, bm, sft)")
-        col_misc.label(text="Misc")
+        col_jkl.label(text="Level (.jkl)", icon="SCENE_DATA")
+        col_thing.label(text="Things (.3do)", icon="MATCUBE")
+        col_bitmaps.label(text="Bitmaps (.mat/.bm/.sft)", icon="TEXTURE")
+
+        box_jkl = col_jkl.box().column()
+        box_thing = col_thing.box().column()
+        box_bitmaps = col_bitmaps.box().column()
+        # col_misc.label(text="Misc").column()
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
 
-        # if ext == "mat":
-        #     col_text.enabled = False
-        # else:
-        #     col_text.enabled = True
 
-        if ext == "3do":
-            col_thing.enabled = True
-        else:
-            col_thing.enabled = False
+        box_jkl.prop(self, "import_things")
+        box_jkl.prop(self, "import_mats")
+        box_jkl.prop(self, "import_intensities")
+        box_jkl.prop(self, "import_sector_info")
+        box_jkl.prop(self, "import_scale")
 
-        if ext == "jkl":
-            col_jkl.enabled = True
-        else:
-            col_jkl.enabled = False
+        box_thing.prop(self, property="is_mots")
+
+        prefs = bpy.context.preferences.addons[__name__].preferences
+
+        box_bitmaps.prop(self, "import_alpha")
+        box_bitmaps.prop(self, "select_shader")
+        box_bitmaps.prop(prefs, "palettes", text="CMP")
 
         layout.prop(self, "in_text_editor")
 
-        col_thing.prop(self, property="is_mots", expand=True)
-
-        col_jkl.prop(self, "import_things")
-        col_jkl.prop(self, "import_mats")
-        col_jkl.prop(self, "import_intensities")
-        col_jkl.prop(self, "import_alpha")
-        col_jkl.prop(self, "import_sector_info")
-        col_jkl.prop(self, "import_scale")
-        col_jkl.prop(self, "select_shader")
 
     def execute(self, context):
         global gob
@@ -438,7 +467,7 @@ class POPUP_OT_gob_browser(Operator):
                 self.import_things,
                 self.import_mats,
                 self.import_intensities,
-                self.import_scale,
+                self.import_alpha,
                 self.import_scale,
                 self.select_shader,
                 self.import_sector_info
@@ -468,26 +497,29 @@ class POPUP_OT_gob_browser(Operator):
             mat = Mat(
                 ungobed_file,
                 ungobed_palette,
-                False,              # alpha
+                self.import_alpha,
                 filename,
-                "BSDF",             # shader
+                self.select_shader,
                 None                # flag ?
                 )
             mat.import_Mat()
-            self.report({'INFO'}, "Material \"" + filename[:-4] + "\" imported")
+            self.report(
+                {'INFO'},
+                "Material \"" + filename[:-4] + "\" imported"
+                )
 
         elif ext == "bm":
             res_gob = Gob(jkdf_res)
-            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")  # uicolormap.cmp
+            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")
             bm = Bm(ungobed_file, filename, ungobed_ui_palette)
             bm.import_Bm()
 
         elif ext == "sft":
             res_gob = Gob(jkdf_res)
-            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")  # uicolormap.cmp
+            ungobed_ui_palette = res_gob.ungob("uicolormap.cmp")
             sft = Sft(ungobed_file, filename, ungobed_ui_palette)
             sft.import_Sft()
-            
+
         elif ext == "cmp":
             colormap = Cmp(ungobed_file, filename)
             colormap.import_Cmp()
@@ -499,7 +531,10 @@ class POPUP_OT_gob_browser(Operator):
 
 
 def import_gob_button(self, context):
-    self.layout.operator(ImportGOBfile.bl_idname, text="JK/MotS Archive (.gob/.goo)")
+    self.layout.operator(
+        ImportGOBfile.bl_idname,
+        text="JK/MotS Archive (.gob/.goo)"
+        )
 
 
 def register():
