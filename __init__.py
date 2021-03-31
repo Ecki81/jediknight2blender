@@ -73,28 +73,30 @@ class JKLAddon_Prefs(AddonPreferences):
         default=""
     )
 
-    def list_palettes(self, context):
+    # very slow solution
 
-        jkdf_res = self.jkdf_path + "\Res2.gob"
-        mots_res = self.mots_path + "\JKMRES.GOO"
+    # def list_palettes(self, context):
 
-        palette_list = []
+    #     jkdf_res = self.jkdf_path + "\Res2.gob"
+    #     mots_res = self.mots_path + "\JKMRES.GOO"
 
-        gob = Gob(jkdf_res)
-        palette_list.append(("default", "default", "default palette defined in Level"),)
-        for item in gob.get_gobed_paths().items():
-            name = Path(item[0]).parts[-1]
-            if name[-3:] == "cmp":
-                palette_tuple = (name, name, "")
-                palette_list.append(palette_tuple)
+    #     palette_list = []
 
-        return palette_list
+    #     gob = Gob(jkdf_res)
+    #     palette_list.append(("default", "default", "default palette defined in Level"),)
+    #     for item in gob.get_gobed_paths().items():
+    #         name = Path(item[0]).parts[-1]
+    #         if name[-3:] == "cmp":
+    #             palette_tuple = (name, name, "")
+    #             palette_list.append(palette_tuple)
 
-    palettes: EnumProperty(
-        name="CMP Palette",
-        items=list_palettes,
-        description="Change to override default texture palette"
-        )
+    #     return palette_list
+
+    # palettes: EnumProperty(
+    #     name="CMP Palette",
+    #     items=list_palettes,
+    #     description="Change to override default texture palette"
+    #     )
 
     def draw(self, context):
         layout = self.layout
@@ -138,6 +140,11 @@ class Dir_Item(PropertyGroup):
     name: StringProperty()
 
     indent: IntProperty()
+
+    file_collection: CollectionProperty(
+        name="File Collection",
+        type=File_Item
+    )
 
 
 class GOB_UL_List(UIList):
@@ -228,7 +235,6 @@ class POPUP_OT_gob_browser(Operator):
     filepath: StringProperty()
     file_entries: CollectionProperty(type=File_Item)
     dir_entries: CollectionProperty(type=Dir_Item)
-    dir_collections: CollectionProperty(type=Dir_Item) # for nested file collections
     list_index: IntProperty(default=0)
     dir_index: IntProperty(default=0)
 
@@ -291,7 +297,7 @@ class POPUP_OT_gob_browser(Operator):
         description="Raw text gets loaded into blender's Text Editor, if possible",
         default=False
         )
-    
+
     is_mots: EnumProperty(
         name="Source game",
         description="Needs to be selected for 3DO assets",
@@ -303,6 +309,8 @@ class POPUP_OT_gob_browser(Operator):
         )
 
     palette_file: StringProperty(
+        name="CMP Override",
+        description="Override with palette from available JK resources. Check in Preferences",
         default="01narsh.cmp"
         )
 
@@ -314,6 +322,9 @@ class POPUP_OT_gob_browser(Operator):
             entry = self.file_entries.add()
             entry.name = Path(item[0]).parts[-1]
             entry.size = item[1][1]/1024
+
+        # The following feels a bit awkward. Put all files from the gob into defaultdict,
+        # then into collection property. Check, if there is a more direct way.
 
         FILE_MARKER = '<files>'
 
@@ -330,16 +341,16 @@ class POPUP_OT_gob_browser(Operator):
                     trunk[node] = defaultdict(dict, ((FILE_MARKER, []),))
                 attach(others, trunk[node])
 
-        def prettify(d, indent=0):
+        dir_entry = self.dir_entries.add()
+        dir_entry.name = Path(self.filepath).parts[-1]
+        dir_entry.indent = 0
+
+        def prettify(d, indent=1):
             '''
             Print the file tree structure with proper indentation.
             '''
             for key, value in d.items():
-                if key == FILE_MARKER:
-                    if value:
-                        # print('  ' * indent + str(value))
-                        pass
-                else:
+                if key != FILE_MARKER:                              # dir
                     # print('  ' * indent + str(key))
                     dir_entry = self.dir_entries.add()
                     dir_entry.name = str(key)
@@ -349,12 +360,18 @@ class POPUP_OT_gob_browser(Operator):
                     else:
                         # print('  ' * (indent+1) + str(value))
                         pass
+                else:                    
+                    if value:                                       # file
+                        # print('  ' * indent + str(value))
+                        for file_items in value:
+                            actual_file = self.dir_entries[-1].file_collection.add()
+                            actual_file.name = file_items
+
 
         main_dict = defaultdict(dict, ((FILE_MARKER, []),))
         for item in gob.get_gobed_paths().items():
             item_posix = item[0].replace('\\', '/')
             attach(item_posix, main_dict)
-            # print(item_posix)
 
         prettify(main_dict)
 
@@ -375,15 +392,16 @@ class POPUP_OT_gob_browser(Operator):
             propname="dir_entries",
             active_dataptr=self,
             active_propname="dir_index",
-            rows=25,
+            rows=25
+            )
 
-        )
+        active_directory = self.dir_entries[self.dir_index]
 
         split_1.row().template_list(
             listtype_name="GOB_UL_List",
             list_id="The_List",
-            dataptr=self,
-            propname="file_entries",
+            dataptr=active_directory,
+            propname="file_collection",
             active_dataptr=self,
             active_propname="list_index",
             rows=25
@@ -419,11 +437,9 @@ class POPUP_OT_gob_browser(Operator):
 
         box_thing.prop(self, property="is_mots")
 
-        prefs = bpy.context.preferences.addons[__name__].preferences
-
         box_bitmaps.prop(self, "import_alpha")
         box_bitmaps.prop(self, "select_shader")
-        box_bitmaps.prop(prefs, "palettes", text="CMP")
+        box_bitmaps.prop(self, "palette_file", text="CMP")
 
         layout.prop(self, "in_text_editor")
 
@@ -436,7 +452,7 @@ class POPUP_OT_gob_browser(Operator):
         jkdf_res = prefs.jkdf_path + "\Res2.gob"
         mots_res = prefs.mots_path + "\JKMRES.GOO"
 
-        filename = self.file_entries[self.list_index].name
+        filename = self.dir_entries[self.dir_index].file_collection[self.list_index].name
         ext = filename.split(".")[-1]
 
         ungobed_file = gob.ungob(filename)
