@@ -410,7 +410,7 @@ class POPUP_OT_gob_browser(Operator):
         split = layout.split()
 
         col_jkl = split.column()
-        col_thing = split.column(heading="needs to be selected for proper import (WIP)")
+        col_thing = split.column()
         col_bitmaps = split.column()
 
 
