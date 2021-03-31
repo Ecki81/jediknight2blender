@@ -233,7 +233,6 @@ class POPUP_OT_gob_browser(Operator):
     bl_options = {'INTERNAL'}
 
     filepath: StringProperty()
-    file_entries: CollectionProperty(type=File_Item)
     dir_entries: CollectionProperty(type=Dir_Item)
     list_index: IntProperty(default=0)
     dir_index: IntProperty(default=0)
@@ -318,9 +317,6 @@ class POPUP_OT_gob_browser(Operator):
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
-
-        # this seems to be necessary for the nested collection in dir_entries
-        self.file_entries.add()
 
         # The following feels a bit awkward. Put all files from the gob into defaultdict,
         # then into collection property. Check, if there is a more direct way.
@@ -426,11 +422,6 @@ class POPUP_OT_gob_browser(Operator):
         box_thing = col_thing.box().column()
         box_bitmaps = col_bitmaps.box().column()
 
-
-        filename = self.file_entries[self.list_index].name
-        ext = filename.split(".")[-1]
-
-
         box_jkl.prop(self, "import_things")
         box_jkl.prop(self, "import_mats")
         box_jkl.prop(self, "import_intensities")
@@ -506,7 +497,7 @@ class POPUP_OT_gob_browser(Operator):
                 10.0,           # scale
                 filename,
                 motsflag,
-                True            # impoprt textures
+                True            # import textures
                 )
             thing.import_Thing()
             self.report({'INFO'}, "Object \"" + filename[:-4] + "\" imported")
