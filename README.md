@@ -1,21 +1,23 @@
 ![jkl2blender title image](/jkl2blender_titleImage.png)
-### Addon for blender 2.8
+### Add-on for blender 2.8x
 
-## Import Jedi Knight: Dark Forces 2 level files (.jkl) into blender 2.8 (WIP)
+## Import Jedi Knight: Dark Forces 2 assets into blender 2.8x (WIP)
 
-This script needs the original JK:DF2 or MotS container files (_.gob/.goo_)
-for the materials and 3do objects.
-The jkl files for the maps need to be unpacked into the Jedi Knight or MotS game directory, depending
-on which game they are based on.
-I used the container manager program [CONMAN.exe](http://www.jkhub.net/library/index.php?title=Tools:Container_Manager_%28ConMan%29_v0.91z) for that.
+With this add-on you can open the JK:DF2 or MotS container archives (_.gob/.goo_)
+and import a variety of assets into blender.
 
 
 Install downloaded/cloned and zipped repo files as an addon to blender:
 Open Blender -> Edit -> Preferences -> Add-ons -> Install and select the zip
 
 
-To open a Jedi Knight: Dark Forces 2 level file (.jkl), go to -> File -> Import -> JK/MotS level
+To open a JK:DF2 gob file (.gob), go to -> File -> Import -> JK/MotS Archive.
 Depending on your hardware, it may take the script a while to import files larger than 1MB.
+
+
+You also need to specify the original game "Resource" directories in the add-on Preferences.
+![jkl2blender preferences](/jkl2blender_preferences.png)
+
 
 ## Tasks
 
@@ -27,7 +29,7 @@ Depending on your hardware, it may take the script a while to import files large
 - [x] texturing 3do
 - [x] resolve 3do hierarchy and parenting
 - [x] parse GOB/GOO
-- [ ] jkl browser UI for packed (GOB) files
+- [x] jkl browser UI for packed (GOB) files
 - [ ] vertex lighting
 - [ ] faster loading
 

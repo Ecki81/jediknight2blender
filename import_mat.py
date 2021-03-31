@@ -65,8 +65,10 @@ class Mat:
             img_matrix = np.flipud(img)
             col_pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256*3, offset=64).reshape((256,3)) / 255
             trans_pal = np.frombuffer(self.pal, dtype=np.uint8 ,count=256, offset=64 + (256*3)).reshape((256,1)) / 63
-            pal_add_channel = np.hstack((col_pal, trans_pal))
-            # pal_add_channel = np.hstack((col_pal, np.ones((256,1))))
+            if self.alpha:
+                pal_add_channel = np.hstack((col_pal, trans_pal))
+            else:
+                pal_add_channel = np.hstack((col_pal, np.ones((256,1))))
             col_image = pal_add_channel[img_matrix]
             pixels = col_image.flatten()
 
