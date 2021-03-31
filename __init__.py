@@ -318,10 +318,9 @@ class POPUP_OT_gob_browser(Operator):
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
-        for item in gob.get_gobed_paths().items():
-            entry = self.file_entries.add()
-            entry.name = Path(item[0]).parts[-1]
-            entry.size = item[1][1]/1024
+
+        # this seems to be necessary for the nested collection in dir_entries
+        self.file_entries.add()
 
         # The following feels a bit awkward. Put all files from the gob into defaultdict,
         # then into collection property. Check, if there is a more direct way.
@@ -363,15 +362,18 @@ class POPUP_OT_gob_browser(Operator):
                 else:                    
                     if value:                                       # file
                         # print('  ' * indent + str(value))
-                        for file_items in value:
+                        for file_item in value:
                             actual_file = self.dir_entries[-1].file_collection.add()
-                            actual_file.name = file_items
+                            actual_file.name = file_item.split(",")[0]
+                            actual_file.size = float(file_item.split(",")[2])/1024
 
 
         main_dict = defaultdict(dict, ((FILE_MARKER, []),))
         for item in gob.get_gobed_paths().items():
-            item_posix = item[0].replace('\\', '/')
-            attach(item_posix, main_dict)
+            item_windows_path = item[0].replace('\\', '/')
+            item_size = str(item[1][0]) + "," + str(item[1][1])
+            combined_item = item_windows_path + "," + item_size
+            attach(combined_item, main_dict)
 
         prettify(main_dict)
 
@@ -383,9 +385,9 @@ class POPUP_OT_gob_browser(Operator):
 
         layout.label(text=self.filepath, icon='FILE_ARCHIVE')
 
-        split_1 = layout.split(factor=0.25)
+        split_files = layout.split(factor=0.25)
 
-        split_1.row().template_list(
+        split_files.row().template_list(
             listtype_name="GOB_UL_Dir_List",
             list_id="The_Dir_List",
             dataptr=self,
@@ -397,7 +399,7 @@ class POPUP_OT_gob_browser(Operator):
 
         active_directory = self.dir_entries[self.dir_index]
 
-        split_1.row().template_list(
+        split_files.row().template_list(
             listtype_name="GOB_UL_List",
             list_id="The_List",
             dataptr=active_directory,
@@ -414,7 +416,7 @@ class POPUP_OT_gob_browser(Operator):
         col_jkl = split.column()
         col_thing = split.column(heading="needs to be selected for proper import (WIP)")
         col_bitmaps = split.column()
-        # col_misc = split.column().box()
+
 
         col_jkl.label(text="Level (.jkl)", icon="SCENE_DATA")
         col_thing.label(text="Things (.3do)", icon="MATCUBE")
@@ -423,7 +425,7 @@ class POPUP_OT_gob_browser(Operator):
         box_jkl = col_jkl.box().column()
         box_thing = col_thing.box().column()
         box_bitmaps = col_bitmaps.box().column()
-        # col_misc.label(text="Misc").column()
+
 
         filename = self.file_entries[self.list_index].name
         ext = filename.split(".")[-1]
