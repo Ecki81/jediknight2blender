@@ -34,7 +34,7 @@ bl_info = {
     "author": "Ecki Seidel",
     "description": """Load GOB/GOO archives from Jedi Knight: Dark Forces II / Mysteries of the Sith (.gob/.goo)""",
     "blender": (2, 81, 0),
-    "version": (0, 8, 0),
+    "version": (0, 9, 0),
     "location": "File > Import > JK/MotS Archive (.gob/.goo)",
     "wiki_url": "https://github.com/Ecki81/jediknight2blender/blob/master/README.md",
     "warning": "Work in progress",
