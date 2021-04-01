@@ -272,8 +272,8 @@ class Level:
                 boundbox_empty.from_pydata(bb_verts, [], bb_faces)
                 boundbox_empty.update()
                 # sectors
-                sector_empty = bpy.data.objects.new( "sector_" + str(prop['sector']) , None)
-                sector_radius = bpy.data.objects.new( "radius_" + str(prop['sector']) , None)
+                sector_empty = bpy.data.objects.new("sector_" + str(prop['sector']), None)
+                sector_radius = bpy.data.objects.new("radius_" + str(prop['sector']), None)
                 sector_radius.empty_display_type = 'SPHERE'
                 sector_radius.empty_display_size = prop['radius'][0]*self.scale
                 bpy.data.collections['Index'].objects.link(sector_empty)
@@ -333,9 +333,9 @@ class Level:
             else:
                 while j < nvert:
                     intensity = float(surfLine[10+nvert+j])
-                    r = intensity + extralight + sector_extralight * sector_tint[0]
-                    g = intensity + extralight + sector_extralight * sector_tint[1]
-                    b = intensity + extralight + sector_extralight * sector_tint[2]
+                    r = intensity + extralight + sector_extralight # * sector_tint[0]
+                    g = intensity + extralight + sector_extralight # * sector_tint[1]
+                    b = intensity + extralight + sector_extralight # * sector_tint[2]
                     surf_intensities.append((r, g, b))
                     j+=1
             surf_intensities_list.append(surf_intensities)

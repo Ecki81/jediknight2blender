@@ -2,6 +2,7 @@ from struct import unpack
 from . import jk_flags
 import numpy as np
 import bpy
+from pathlib import Path
 
 
 class Mat:
@@ -76,11 +77,17 @@ class Mat:
             image.pixels = pixels
 
 
-            # write image
+            # save image temporarily
 
-            image.filepath_raw = "/tmp/" + self.name + ".png"
-            image.file_format = 'PNG'
-            image.save()
+            prefs = bpy.context.preferences.addons["import_jkl"].preferences
+            temp_path = Path(prefs.temp_folder)
+            if temp_path != "":
+                joined_path = temp_path.joinpath(self.name + ".png")
+                image.filepath_raw = str(joined_path)
+                image.file_format = 'PNG'
+                image.save()
+            else:
+                self.report({'INFO'}, "Missing temp folder, check add-on preferences!")
 
             # create material
 

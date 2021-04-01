@@ -73,36 +73,20 @@ class JKLAddon_Prefs(AddonPreferences):
         default=""
     )
 
-    # very slow solution
-
-    # def list_palettes(self, context):
-
-    #     jkdf_res = self.jkdf_path + "\Res2.gob"
-    #     mots_res = self.mots_path + "\JKMRES.GOO"
-
-    #     palette_list = []
-
-    #     gob = Gob(jkdf_res)
-    #     palette_list.append(("default", "default", "default palette defined in Level"),)
-    #     for item in gob.get_gobed_paths().items():
-    #         name = Path(item[0]).parts[-1]
-    #         if name[-3:] == "cmp":
-    #             palette_tuple = (name, name, "")
-    #             palette_list.append(palette_tuple)
-
-    #     return palette_list
-
-    # palettes: EnumProperty(
-    #     name="CMP Palette",
-    #     items=list_palettes,
-    #     description="Change to override default texture palette"
-    #     )
+    temp_folder: StringProperty(
+        name="Temporary image folder",
+        description="Temporary folder for texture files. Neccessary, if textures need to be packed in an fbx",
+        subtype='DIR_PATH',
+        default=""
+    )
 
     def draw(self, context):
         layout = self.layout
         layout.label(text="Please locate the \"Resource\" directories for DF:JK and / or MotS")
         layout.prop(self, "jkdf_path")
         layout.prop(self, "mots_path")
+        layout.label(text="Select a temporary image folder for textures. You may need one, if you want to export an fbx with packed textures.")
+        layout.prop(self, "temp_folder")
 
 
 class ImportGOBfile(Operator):
@@ -179,6 +163,18 @@ class GOB_UL_List(UIList):
         elif ext == "cmp":
             custom_icon = 'COLOR'
             filetype = "Color Map"
+        elif ext == "par":
+            custom_icon = 'POINTCLOUD_DATA'
+            filetype = "Particle Cloud"
+        elif ext == "pup":
+            custom_icon = 'POSE_HLT'
+            filetype = "Puppet File"
+        elif ext == "snd":
+            custom_icon = 'SPEAKER'
+            filetype = "Sound Info"
+        elif ext == "spr":
+            custom_icon = 'SEQ_PREVIEW'
+            filetype = "Sprite Info"
         elif ext == "wav":
             custom_icon = 'OUTLINER_DATA_SPEAKER'
             filetype = "Audio"
@@ -309,10 +305,9 @@ class POPUP_OT_gob_browser(Operator):
 
     palette_file: StringProperty(
         name="CMP Override",
-        description="Override with palette from available JK resources. Check in Preferences",
+        description="Type in desired palette file (\"01narsh.cmp\")",
         default="01narsh.cmp"
         )
-
 
     def invoke(self, context, event):
         global gob
@@ -377,6 +372,7 @@ class POPUP_OT_gob_browser(Operator):
         return context.window_manager.invoke_props_dialog(self, width=800)
 
     def draw(self, context):
+
         layout = self.layout
 
         layout.label(text=self.filepath, icon='FILE_ARCHIVE')
@@ -413,7 +409,6 @@ class POPUP_OT_gob_browser(Operator):
         col_thing = split.column()
         col_bitmaps = split.column()
 
-
         col_jkl.label(text="Level (.jkl)", icon="SCENE_DATA")
         col_thing.label(text="Things (.3do)", icon="MATCUBE")
         col_bitmaps.label(text="Bitmaps (.mat/.bm/.sft)", icon="TEXTURE")
@@ -435,7 +430,6 @@ class POPUP_OT_gob_browser(Operator):
         box_bitmaps.prop(self, "palette_file", text="CMP")
 
         layout.prop(self, "in_text_editor")
-
 
     def execute(self, context):
         global gob
@@ -532,6 +526,9 @@ class POPUP_OT_gob_browser(Operator):
         elif ext == "cmp":
             colormap = Cmp(ungobed_file, filename)
             colormap.import_Cmp()
+
+        elif ext == "wav":
+            self.report({'WARNING'}, ext.upper() + "s: not yet implemented")
 
         else:
             self.report({'WARNING'}, ext.upper() + "s: only text supported")
