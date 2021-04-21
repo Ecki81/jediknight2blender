@@ -25,18 +25,21 @@ from .import_bm import Bm
 from .import_sft import Sft
 from .import_cmp import Cmp
 from bpy_extras.io_utils import ImportHelper
-from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty, FloatProperty, CollectionProperty
+from bpy.props import StringProperty, IntProperty, BoolProperty, EnumProperty
+from bpy.props import FloatProperty, CollectionProperty
 from bpy.types import PropertyGroup, UIList, Operator, AddonPreferences
 
 
 bl_info = {
     "name": "jediknight2blender",
     "author": "Ecki Seidel",
-    "description": """Load GOB/GOO archives from Jedi Knight: Dark Forces II / Mysteries of the Sith (.gob/.goo)""",
+    "description": "Load GOB/GOO archives from Jedi Knight: "
+    "Dark Forces II / Mysteries of the Sith (.gob/.goo)",
     "blender": (2, 81, 0),
     "version": (0, 9, 0),
     "location": "File > Import > JK/MotS Archive (.gob/.goo)",
-    "wiki_url": "https://github.com/Ecki81/jediknight2blender/blob/master/README.md",
+    "wiki_url":
+    "https://github.com/Ecki81/jediknight2blender/blob/master/README.md",
     "warning": "Work in progress",
     "category": "Import-Export"
 }
@@ -62,36 +65,41 @@ class JKLAddon_Prefs(AddonPreferences):
     jkdf_path: StringProperty(
         name="DF:JK Resource dir",
         subtype='DIR_PATH',
-        # default="C:\\Program Files (x86)\\GOG Galaxy\\Games\\Star Wars Jedi Knight - Dark Forces 2\\Resource"
         default=""
     )
 
     mots_path: StringProperty(
         name="MotS Resource dir",
         subtype='DIR_PATH',
-        # default="C:\\Program Files (x86)\\GOG Galaxy\\Games\\Star Wars Jedi Knight - Mysteries of the Sith\\Resource"
         default=""
     )
 
     temp_folder: StringProperty(
         name="Temporary image folder",
-        description="Temporary folder for texture files. Neccessary, if textures need to be packed in an fbx",
+        description="Temporary folder for texture files. Neccessary, if "
+        "textures need to be packed in an fbx",
         subtype='DIR_PATH',
         default=""
     )
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="Please locate the \"Resource\" directories for DF:JK and / or MotS")
+        layout.label(
+            text="Please locate the \"Resource\" directories"
+            " for DF:JK and / or MotS"
+            )
         layout.prop(self, "jkdf_path")
         layout.prop(self, "mots_path")
-        layout.label(text="Select a temporary image folder for textures. You may need one, if you want to export an fbx with packed textures.")
+        layout.label(
+            text="Select a temporary image folder for textures. You "
+            "may need one, if you want to export an fbx with packed textures."
+            )
         layout.prop(self, "temp_folder")
 
 
 class ImportGOBfile(Operator):
-    """Load an archive file from Star Wars Jedi Knight / Mysteries of the Sith (.gob)"""
-    bl_idname = "import_scene.gob_data"  # important since its how bpy.ops.import_test.some_data is constructed
+    """Load an archive file from Star Wars Jedi Knight / MotS (.gob)"""
+    bl_idname = "import_scene.gob_data"
     bl_label = "Import GOB"
 
     filter_glob: StringProperty(
@@ -235,31 +243,35 @@ class POPUP_OT_gob_browser(Operator):
 
     import_things: BoolProperty(
         name="3do meshes",
-        description="Level things (.3do) are imported and placed, if found in .gob",
+        description="Level things (.3do) are imported and placed, "
+        "if found in .gob",
         default=True,
     )
 
     import_mats: BoolProperty(
         name="Materials",
-        description="Level and thing meshes are textured with materials, if found in .gob",
+        description="Level and thing meshes are textured with materials,"
+        " if found in .gob",
         default=True,
     )
 
     import_intensities: BoolProperty(
         name="Vertex Lighting",
-        description="Imports jkl light intensities as vertex color information. Vertex colors are added to material via multiplier node",
+        description="Imports jkl light intensities as vertex color."
+        " Vertex colors are added to material via multiplier node",
         default=True,
     )
 
     import_alpha: BoolProperty(
         name="Transparency",
         description="Alpha from 1st transparency table in .cmp file",
-        default=True,
+        default=False,
     )
 
     import_scale: FloatProperty(
         name="Scale",
-        description="Default jk scale is 0.1 blender units; scale \"1.00\" multiplies jk with 10",
+        description="Default jk scale is 0.1 blender units; "
+        "scale \"1.00\" multiplies jk with 10",
         default=1.0,
         min=0.0001,
     )
@@ -283,15 +295,17 @@ class POPUP_OT_gob_browser(Operator):
 
     import_sector_info: BoolProperty(
         name="Sectors info",
-        description="Display empties w/ sector properties in separate Collection",
+        description="Display empties w/ sector properties"
+        " in separate Collection",
         default=False,
     )
 
     in_text_editor: BoolProperty(
         name="load into Text Editor",
-        description="Raw text gets loaded into blender's Text Editor, if possible",
+        description="Raw text gets loaded into blender's Text Editor, "
+        "if possible",
         default=False
-        )
+    )
 
     is_mots: EnumProperty(
         name="Source game",
@@ -301,20 +315,22 @@ class POPUP_OT_gob_browser(Operator):
             ("MOTS", "MotS 3DO", "")
         ),
         default="DFJK"
-        )
+    )
 
     palette_file: StringProperty(
         name="CMP Override",
         description="Type in desired palette file (\"01narsh.cmp\")",
         default="01narsh.cmp"
-        )
+    )
 
     def invoke(self, context, event):
         global gob
         gob = Gob(self.filepath)
 
-        # The following feels a bit awkward. Put all files from the gob into defaultdict,
-        # then into collection property. Check, if there is a more direct way.
+        # The following feels a bit awkward.
+        # Put all files from thegob into defaultdict,
+        # then into collection property.
+        # Check, if there is a more direct way.
 
         FILE_MARKER = '<files>'
 
@@ -350,14 +366,14 @@ class POPUP_OT_gob_browser(Operator):
                     else:
                         # print('  ' * (indent+1) + str(value))
                         pass
-                else:                    
+                else:
                     if value:                                       # file
                         # print('  ' * indent + str(value))
                         for file_item in value:
                             actual_file = self.dir_entries[-1].file_collection.add()
                             actual_file.name = file_item.split(",")[0]
-                            actual_file.size = float(file_item.split(",")[2])/1024
-
+                            file_size = file_item.split(",")[2]
+                            actual_file.size = float(file_size)/1024
 
         main_dict = defaultdict(dict, ((FILE_MARKER, []),))
         for item in gob.get_gobed_paths().items():
@@ -438,6 +454,18 @@ class POPUP_OT_gob_browser(Operator):
 
         jkdf_res = prefs.jkdf_path + "\Res2.gob"
         mots_res = prefs.mots_path + "\JKMRES.GOO"
+
+        restwo_file = Path(jkdf_res)
+        if restwo_file.is_file():
+            print("Res2.gob FOUND!")
+        else:
+            print("Res2.gob NOT FOUND!")
+
+        jkmres_file = Path(mots_res)
+        if jkmres_file.is_file():
+            print("JKMRES.GOO FOUND!")
+        else:
+            print("JKMRES.GOO NOT FOUND!")
 
         filename = self.dir_entries[self.dir_index].file_collection[self.list_index].name
         ext = filename.split(".")[-1]

@@ -66,7 +66,7 @@ class Level:
                 break
             parent += 1
 
-        self.scale = self.scale * 10.0            # factor for real world scale in blender
+        self.scale = self.scale * 10.0  # factor for real world scale in blender
 
         # get required SECTION positions in jkl ############################
 
@@ -167,7 +167,7 @@ class Level:
         sector_boundbox_regex = re.compile(r"BOUNDBOX\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
         sector_center_regex = re.compile(r"CENTER\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
         sector_radius_regex = re.compile(r"RADIUS\s(-?\d*\.?\d*)")
-        sector_surfaces_regex =re.compile(r"SURFACES\s(\d+)\s(\d+)")
+        sector_surfaces_regex = re.compile(r"SURFACES\s(\d+)\s(\d+)")
 
         sector_pos = []
         sectors_pos_array = []
@@ -439,7 +439,7 @@ class Level:
                         mat.import_Mat()
                     except:
                         placeholder_mat(material, (1.0,0.0,1.0,1))
-                        # print("couldn't import " + material + ". created placeholder mat")
+                        print("couldn't import " + material + ". created placeholder mat")
 
 
         else:
@@ -600,6 +600,12 @@ class Level:
                         vcol.data[polygon.loop_indices[jsrf]].color = color
 
             
+            #  #Delete Adjoin surfaces
+            # if self.importMats:
+            #     for port_surface in surf_list:
+            #         print(port_surface)
+            #     pass
+
 
             # Update mesh with new data
             me.update()
