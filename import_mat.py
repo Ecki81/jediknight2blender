@@ -43,7 +43,14 @@ class Mat:
 
         TMAT_HEADER_LEN = 76  # for every mat file
         TTEX_HEADER_LEN = 40  # for every mat file * NumOfTextures
-        TTEX_DATA_LEN = 24 # goes before every pixel data
+        TTEX_DATA_LEN = 24  # goes before every pixel data block
+
+        # Solid colors
+
+        if self.shader == "SOLID":
+            ttype = 1
+        else:
+            pass
 
         # Textures #
 
@@ -52,25 +59,46 @@ class Mat:
             t_tex_header = unpack("LLLLLLLL", self.mat[100:132])
 
             header_offset = TMAT_HEADER_LEN + TTEX_HEADER_LEN * NumOfTextures
-            pixel_offset = header_offset + TTEX_DATA_LEN
 
-            size = unpack("LL", self.mat[header_offset:header_offset+8])
+            size_x, size_y = unpack("LL", self.mat[header_offset:header_offset+8])
 
-            image = bpy.data.images.new(self.name, width=size[0], height=size[1]*NumOfTextures)
+            image = bpy.data.images.new(self.name, width=size_x, height=size_y*NumOfTextures)
 
             # create numpy pixel data
 
-            img = np.frombuffer(self.mat, dtype=np.uint8, count=(size[1] * size[0] * NumOfTextures) + (TTEX_DATA_LEN * NumOfTextures), offset=header_offset).reshape((NumOfTextures, size[0]*size[1]+TTEX_DATA_LEN))
+            # matrix shape: frames * length of pixel data incl. header
+            img = np.frombuffer(
+                self.mat,
+                dtype=np.uint8,
+                count=(size_y * size_x * NumOfTextures) + (TTEX_DATA_LEN * NumOfTextures),
+                offset=header_offset
+                ).reshape((NumOfTextures, size_x*size_y+TTEX_DATA_LEN))
+
+            # remove TTextureData columns
             img_del = np.delete(img, np.s_[0:TTEX_DATA_LEN], axis=1)
-            img_headless = img_del.reshape((size[1]*NumOfTextures, size[0]))
+
+            # reshape to image dimensions
+            img_headless = img_del.reshape((size_y*NumOfTextures, size_x))
+
+            # flip upside down to blender pixel direction (0,0 = bottom left)
             img_matrix = np.flipud(img_headless)
+
+            # read in color values to RGB table shape
             col_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256*3, offset=64).reshape((256, 3)) / 255
+
+            # read in alpha values
             trans_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3)).reshape((256, 1)) / 63
+
+            # concat alpha values to RGB table
             if self.alpha:
-                pal_add_channel = np.hstack((col_pal, trans_pal))
+                pal_rgba = np.hstack((col_pal, trans_pal))
             else:
-                pal_add_channel = np.hstack((col_pal, np.ones((256, 1))))
-            col_image = pal_add_channel[img_matrix]
+                pal_rgba = np.hstack((col_pal, np.ones((256, 1))))
+                
+            # assign rgba values to image
+            col_image = pal_rgba[img_matrix]
+            
+            # flatten image matrix to R,G,B,A,R,G,B,A,....
             pixels = col_image.flatten()
 
             image.pixels = pixels
@@ -129,6 +157,29 @@ class Mat:
                 mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
                 mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
 
+                # flip book animation nodes
+                if NumOfTextures > 1:
+                    mapping = mat.node_tree.nodes.new('ShaderNodeMapping')
+                    mapping.vector_type = 'TEXTURE'
+                    coord = mat.node_tree.nodes.new('ShaderNodeTexCoord')
+                    combine = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
+                    divide = mat.node_tree.nodes.new('ShaderNodeMath')
+                    divide.operation = 'DIVIDE'
+                    value_frame = mat.node_tree.nodes.new('ShaderNodeValue')
+                    value_frame.label = 'frame'
+                    frame_driver = value_frame.outputs[0].driver_add("default_value")
+                    frame_driver.driver.expression = "frame"
+                    value_divisor = mat.node_tree.nodes.new('ShaderNodeValue')
+                    value_divisor.label = 'NumOfTextures'
+                    value_divisor.outputs[0].default_value = NumOfTextures
+
+                    mat.node_tree.links.new(texImage.inputs[0], mapping.outputs[0])
+                    mat.node_tree.links.new(mapping.inputs[1], combine.outputs[0])
+                    mat.node_tree.links.new(mapping.inputs[0], coord.outputs[2])
+                    mat.node_tree.links.new(combine.inputs[1], divide.outputs[0])
+                    mat.node_tree.links.new(divide.inputs[0], value_frame.outputs[0])
+                    mat.node_tree.links.new(divide.inputs[1], value_divisor.outputs[0])
+
         # Color Mat #
 
         else:
@@ -145,4 +196,13 @@ class Mat:
             b = self.pal[66+(colornum*3)]/255
             colorNode.outputs[0].default_value = (r, g, b, 1)
             colorNode.location = -400, 250
-            mat.node_tree.links.new(output.inputs['Surface'], colorNode.outputs['Color'])
+            vertexColor = mat.node_tree.nodes.new('ShaderNodeAttribute')
+            vertexColor.attribute_name = 'Intensities'
+            vertexColor.location = -500, -50
+            mixColor = mat.node_tree.nodes.new('ShaderNodeMixRGB')
+            mixColor.blend_type = 'MULTIPLY'
+            mixColor.inputs[0].default_value = 0.98
+            mixColor.location = -250, 150
+            mat.node_tree.links.new(output.inputs['Surface'], mixColor.outputs[0])
+            mat.node_tree.links.new(mixColor.inputs['Color1'], colorNode.outputs[0])
+            mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])

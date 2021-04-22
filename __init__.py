@@ -49,7 +49,7 @@ bl_info = {
 # read in jkl                             DONE
 # read in 3do                             DONE
 # read in mat                             DONE
-#                                         TODO: transp, anim)
+#                                         TODO: transp, emission)
 # place 3do in levels                     DONE
 # texturing levels                        DONE (not sure about tiling)
 # texturing things                        DONE
@@ -289,6 +289,11 @@ class POPUP_OT_gob_browser(Operator):
                 "Vertex lighting",
                 '''Sith engine light intensities in vertex color channel,
                 multiplied with textures in shader'''),
+            (
+                'SOLID',
+                "Solid colors",
+                '''Solid geometry from Sith engine advanced
+                display settings with light intensities'''),
         ),
         default='VERT',
     )
