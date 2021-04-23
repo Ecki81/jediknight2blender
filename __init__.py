@@ -257,15 +257,21 @@ class POPUP_OT_gob_browser(Operator):
 
     import_intensities: BoolProperty(
         name="Vertex Lighting",
-        description="Imports jkl light intensities as vertex color."
+        description="Import jkl light intensities as vertex color."
         " Vertex colors are added to material via multiplier node",
         default=True,
+    )
+
+    import_emission: BoolProperty(
+        name="Emissive Textures TEST",
+        description="Import jkl light levels as emission.",
+        default=False,
     )
 
     import_alpha: BoolProperty(
         name="Transparency",
         description="Alpha from 1st transparency table in .cmp file",
-        default=False,
+        default=True,
     )
 
     import_scale: FloatProperty(
@@ -447,6 +453,7 @@ class POPUP_OT_gob_browser(Operator):
         box_thing.prop(self, property="is_mots")
 
         box_bitmaps.prop(self, "import_alpha")
+        box_bitmaps.prop(self, "import_emission")
         box_bitmaps.prop(self, "select_shader")
         box_bitmaps.prop(self, "palette_file", text="CMP")
 
@@ -503,6 +510,7 @@ class POPUP_OT_gob_browser(Operator):
                 self.import_things,
                 self.import_mats,
                 self.import_intensities,
+                self.import_emission,
                 self.import_alpha,
                 self.import_scale,
                 self.select_shader,
@@ -536,6 +544,7 @@ class POPUP_OT_gob_browser(Operator):
                 self.import_alpha,
                 filename,
                 self.select_shader,
+                self.import_emission,
                 None                # flag ?
                 )
             mat.import_Mat()

@@ -110,7 +110,7 @@ class Thing:
                     continue
                 else:
                     ungobed_file = gob.ungob(texture.lower()+".mat")
-                    mat = Mat(ungobed_file, ungobed_palette, False, texture.lower(), "BSDF", None)
+                    mat = Mat(ungobed_file, ungobed_palette, False, texture.lower(), "BSDF", True, None)
                     mat.import_Mat()
 
 

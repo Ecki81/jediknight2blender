@@ -11,12 +11,13 @@ import pathlib
 
 class Level:
 
-    def __init__(self, path, importThings, importMats, importIntensities, importAlpha, scale, select_shader, import_sector_info):
+    def __init__(self, path, importThings, importMats, importIntensities, importEmission, importAlpha, scale, select_shader, import_sector_info):
         '''initialize jkl with diverse import flags'''
         self.lines = None
         self.importThings = importThings
         self.importMats = importMats
         self.importIntensities = importIntensities
+        self.importEmission = importEmission
         self.importAlpha = importAlpha
         self.scale = scale
         self.select_shader = select_shader
@@ -435,7 +436,7 @@ class Level:
                     print(material, "already loaded")
                 else:
                     try:
-                        mat = Mat(gob.ungob(material), colormap, alpha, material, self.select_shader, surfflag)
+                        mat = Mat(gob.ungob(material), colormap, alpha, material, self.select_shader, self.importEmission, surfflag)
                         mat.import_Mat()
                     except:
                         placeholder_mat(material, (1.0,0.0,1.0,1))

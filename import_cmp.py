@@ -28,9 +28,4 @@ class Cmp:
                 offset=64
                 ).reshape((256,3)) / 255
 
-        a = np.ones((256, 1))
-        pixels_alpha = np.hstack((pixels, a))
-
-        pixels_flat = pixels_alpha.flatten()
-
-        image.pixels = pixels_flat
+        image.pixels = np.hstack((pixels, np.ones((256, 1)))).flatten()

@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 class Mat:
-    def __init__(self, mat, pal, alpha, name, shader, flag):
+    def __init__(self, mat, pal, alpha, name, shader, emission, flag):
         '''
         initializes a material, takes material file name
         and palette file name (currently unused)
@@ -18,6 +18,7 @@ class Mat:
         self.alpha = alpha
         self.anim = False
         self.shader = shader
+        self.emission = emission
         self.flag = flag
 
     def __str__(self):
@@ -26,7 +27,7 @@ class Mat:
     def import_Mat(self):
         '''
         reads an image from a JK mat file and its corresponding pal file
-        and returns a material with diffuse map
+        and returns a material with diffuse and emission (optional) map
         '''
 
         # read in header
@@ -39,13 +40,14 @@ class Mat:
         textype = t_mat_header[22]
         colornum = t_mat_header[23]
 
-        # Header lengths
+        # Header byte lengths
 
         TMAT_HEADER_LEN = 76  # for every mat file
         TTEX_HEADER_LEN = 40  # for every mat file * NumOfTextures
         TTEX_DATA_LEN = 24  # goes before every pixel data block
+        TCMP_HEADER_LEN = 64
 
-        # Solid colors
+        # if Solid colors, overide texture type flag with color type
 
         if self.shader == "SOLID":
             ttype = 1
@@ -86,22 +88,33 @@ class Mat:
             # read in color values to RGB table shape
             col_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256*3, offset=64).reshape((256, 3)) / 255
 
-            # read in alpha values
+            # (read in alpha values) these ara actually light levels!
             trans_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3)).reshape((256, 1)) / 63
+
+            light_levels = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3))
+
+            if self.emission:
+                col_pal = col_pal[light_levels]
+            else:
+                pass
 
             # concat alpha values to RGB table
             if self.alpha:
                 pal_rgba = np.hstack((col_pal, trans_pal))
             else:
                 pal_rgba = np.hstack((col_pal, np.ones((256, 1))))
-                
+
             # assign rgba values to image
             col_image = pal_rgba[img_matrix]
-            
+
             # flatten image matrix to R,G,B,A,R,G,B,A,....
             pixels = col_image.flatten()
 
             image.pixels = pixels
+
+            # # emissive map
+            # if self.emission:
+            #     image_emission = bpy.data.images.new(self.name + "_E", width=size_x, height=size_y*NumOfTextures)
 
             # save image temporarily
 
