@@ -91,13 +91,6 @@ class Mat:
             # (read in alpha values) these ara actually light levels!
             trans_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3)).reshape((256, 1)) / 63
 
-            light_levels = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3))
-
-            if self.emission:
-                col_pal = col_pal[light_levels]
-            else:
-                pass
-
             # concat alpha values to RGB table
             if self.alpha:
                 pal_rgba = np.hstack((col_pal, trans_pal))
@@ -113,8 +106,18 @@ class Mat:
             image.pixels = pixels
 
             # # emissive map
-            # if self.emission:
-            #     image_emission = bpy.data.images.new(self.name + "_E", width=size_x, height=size_y*NumOfTextures)
+            if self.emission:
+                light_levels = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3))
+                emission_pal = col_pal[light_levels]
+                emission_pal_rgba = np.hstack((emission_pal, np.ones((256, 1))))
+
+                emission_image = bpy.data.images.new(self.name + "_E", width=size_x, height=size_y*NumOfTextures)
+                em_image = emission_pal_rgba[img_matrix]
+                em_pixels = em_image.flatten()
+
+                emission_image.pixels = em_pixels
+            else:
+                pass
 
             # save image temporarily
 
@@ -149,6 +152,37 @@ class Mat:
                 if self.alpha:
                     mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
                     mat.blend_method = 'CLIP'
+                if self.emission:
+                    emTexImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+                    emTexImage.image = emission_image
+                    multiply = mat.node_tree.nodes.new('ShaderNodeMixRGB')
+                    multiply.blend_type = 'MULTIPLY'
+                    multiply.inputs[2].default_value = (4.95385, 4.95385, 4.95385, 1.0)
+                    mat.node_tree.links.new(bsdf.inputs['Emission'], multiply.outputs[0])
+                    mat.node_tree.links.new(multiply.inputs[1], emTexImage.outputs['Color'])
+                if NumOfTextures > 1:
+                    mapping = mat.node_tree.nodes.new('ShaderNodeMapping')
+                    mapping.vector_type = 'TEXTURE'
+                    coord = mat.node_tree.nodes.new('ShaderNodeTexCoord')
+                    combine = mat.node_tree.nodes.new('ShaderNodeCombineXYZ')
+                    divide = mat.node_tree.nodes.new('ShaderNodeMath')
+                    divide.operation = 'DIVIDE'
+                    value_frame = mat.node_tree.nodes.new('ShaderNodeValue')
+                    value_frame.label = 'frame'
+                    frame_driver = value_frame.outputs[0].driver_add("default_value")
+                    frame_driver.driver.expression = "frame"
+                    value_divisor = mat.node_tree.nodes.new('ShaderNodeValue')
+                    value_divisor.label = 'NumOfTextures'
+                    value_divisor.outputs[0].default_value = NumOfTextures
+
+                    mat.node_tree.links.new(texImage.inputs[0], mapping.outputs[0])
+                    mat.node_tree.links.new(mapping.inputs[1], combine.outputs[0])
+                    mat.node_tree.links.new(mapping.inputs[0], coord.outputs[2])
+                    mat.node_tree.links.new(combine.inputs[1], divide.outputs[0])
+                    mat.node_tree.links.new(divide.inputs[0], value_frame.outputs[0])
+                    mat.node_tree.links.new(divide.inputs[1], value_divisor.outputs[0])
+                    if self.emission:
+                        mat.node_tree.links.new(emTexImage.inputs[0], mapping.outputs[0])
 
             else:
                 mat.node_tree.nodes.remove(bsdf)
