@@ -88,8 +88,8 @@ class Mat:
             # read in color values to RGB table shape
             col_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256*3, offset=64).reshape((256, 3)) / 255
 
-            # (read in alpha values) these ara actually light levels!
-            trans_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3)).reshape((256, 1)) / 63
+            # read in alpha values from last light level table
+            trans_pal = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3) + (256*63)).reshape((256, 1)) / 63
 
             # concat alpha values to RGB table
             if self.alpha:
@@ -106,16 +106,27 @@ class Mat:
             image.pixels = pixels
 
             # # emissive map
+            has_em_map = False
             if self.emission:
                 light_levels = np.frombuffer(self.pal, dtype=np.uint8, count=256, offset=64 + (256*3))
                 emission_pal = col_pal[light_levels]
-                emission_pal_rgba = np.hstack((emission_pal, np.ones((256, 1))))
 
-                emission_image = bpy.data.images.new(self.name + "_E", width=size_x, height=size_y*NumOfTextures)
-                em_image = emission_pal_rgba[img_matrix]
-                em_pixels = em_image.flatten()
+                # check, if emission is all black
+                em_image = emission_pal[img_matrix]
+                em_image_sum = np.sum(em_image)
+                if em_image_sum > 0.0:
+                    print(self.name, "has emission")
 
-                emission_image.pixels = em_pixels
+                    # add alpha layer to image matrix
+                    alpha_pixels = np.ones((size_y*NumOfTextures, size_x, 1))
+                    em_image_rgba = np.concatenate((em_image, alpha_pixels), axis=2)
+                    em_pixels = em_image_rgba.flatten()
+
+                    emission_image = bpy.data.images.new(self.name + "_E", width=size_x, height=size_y*NumOfTextures, alpha=False)
+                    emission_image.pixels = em_pixels
+                    has_em_map = True
+                else:
+                    has_em_map = False
             else:
                 pass
 
@@ -125,9 +136,14 @@ class Mat:
             temp_path = Path(prefs.temp_folder)
             if temp_path != "":
                 joined_path = temp_path.joinpath(self.name + ".png")
+                joined_path_e = temp_path.joinpath(self.name + "_E.png")
                 image.filepath_raw = str(joined_path)
                 image.file_format = 'PNG'
                 image.save()
+                if has_em_map:
+                    emission_image.filepath_raw = str(joined_path_e)
+                    emission_image.file_format = 'PNG'
+                    emission_image.save()
             else:
                 self.report({'INFO'}, "Missing temp folder, check add-on preferences!")
 
@@ -152,11 +168,12 @@ class Mat:
                 if self.alpha:
                     mat.node_tree.links.new(bsdf.inputs['Alpha'], texImage.outputs['Alpha'])
                     mat.blend_method = 'CLIP'
-                if self.emission:
+                if self.emission and has_em_map:
                     emTexImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
                     emTexImage.image = emission_image
                     multiply = mat.node_tree.nodes.new('ShaderNodeMixRGB')
                     multiply.blend_type = 'MULTIPLY'
+                    multiply.inputs[0].default_value = 1.0
                     multiply.inputs[2].default_value = (4.95385, 4.95385, 4.95385, 1.0)
                     mat.node_tree.links.new(bsdf.inputs['Emission'], multiply.outputs[0])
                     mat.node_tree.links.new(multiply.inputs[1], emTexImage.outputs['Color'])
@@ -181,7 +198,7 @@ class Mat:
                     mat.node_tree.links.new(combine.inputs[1], divide.outputs[0])
                     mat.node_tree.links.new(divide.inputs[0], value_frame.outputs[0])
                     mat.node_tree.links.new(divide.inputs[1], value_divisor.outputs[0])
-                    if self.emission:
+                    if self.emission and has_em_map:
                         mat.node_tree.links.new(emTexImage.inputs[0], mapping.outputs[0])
 
             else:
@@ -200,9 +217,21 @@ class Mat:
 
                 texImage.image = image
                 texImage.location = -600, 250
+                
                 mat.node_tree.links.new(output.inputs['Surface'], mixColor.outputs['Color'])
                 mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
                 mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
+
+                if self.emission and has_em_map:
+                    emTexImage = mat.node_tree.nodes.new('ShaderNodeTexImage')
+                    emTexImage.image = emission_image
+                    addition = mat.node_tree.nodes.new('ShaderNodeMixRGB')
+                    addition.blend_type = 'ADD'
+                    addition.inputs[0].default_value = 1.0
+
+                    mat.node_tree.links.new(output.inputs['Surface'], addition.outputs['Color'])
+                    mat.node_tree.links.new(addition.inputs['Color1'], mixColor.outputs['Color'])
+                    mat.node_tree.links.new(addition.inputs['Color2'], emTexImage.outputs['Color'])
 
                 # flip book animation nodes
                 if NumOfTextures > 1:
@@ -226,6 +255,8 @@ class Mat:
                     mat.node_tree.links.new(combine.inputs[1], divide.outputs[0])
                     mat.node_tree.links.new(divide.inputs[0], value_frame.outputs[0])
                     mat.node_tree.links.new(divide.inputs[1], value_divisor.outputs[0])
+                    if self.emission and has_em_map:
+                        mat.node_tree.links.new(emTexImage.inputs[0], mapping.outputs[0])
 
         # Color Mat #
 

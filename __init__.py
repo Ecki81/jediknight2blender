@@ -263,7 +263,7 @@ class POPUP_OT_gob_browser(Operator):
     )
 
     import_emission: BoolProperty(
-        name="Emissive Textures (Test, only BSDF)",
+        name="Emissive Textures",
         description="Import jkl light levels as emission.",
         default=False,
     )
