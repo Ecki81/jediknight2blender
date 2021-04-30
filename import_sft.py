@@ -14,17 +14,26 @@ class Sft:
 
         header = unpack("ccccLLLLLLLLLHH", self.file[0:44])
 
-        first_char = header[13]
-        last_char = header[14]
+        num_tables = header[8]
 
-        # 8 bytes (2 longs) for each char def
-        length_char_defs = (last_char - first_char + 1) * 8
-        header_bm_start = length_char_defs + 44
-        header_bm_end = header_bm_start+76
+        def header_length(current_table, char_def_len):
+            '''Return the header length of the SFT file.
+            The char_def_len has to start at the first occurence
+            of the CharDef 16bit words.
+            '''
+            if current_table < num_tables:
+                first_char, last_char = unpack("HH", self.file[char_def_len:char_def_len + 4])
+                # new_char_def = char_def + 1 longint (the char_def itself) + length of next char_def
+                char_def_len_new = char_def_len + 4 + (int(last_char) - int(first_char) + 1)*8
+                return header_length(current_table + 1, char_def_len_new)
+            else:
+                return char_def_len
+
+        header_bm_start = header_length(0, 40)
 
         header_bm = unpack(
             "ccccLLLLLLLLLLLLLLLLLL",
-            self.file[header_bm_start: header_bm_end]
+            self.file[header_bm_start : header_bm_start + 76]
             )
 
         PalInc = header_bm[6]          # 0, 1 or 2 ;  2 = palette included
