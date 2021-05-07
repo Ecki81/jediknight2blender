@@ -17,6 +17,7 @@ import mathutils
 from decimal import Decimal
 from collections import defaultdict
 from pathlib import Path
+from os.path import basename, dirname
 from .import_jkl import Level
 from .import_3do import Thing
 from .import_mat import Mat
@@ -60,7 +61,7 @@ bl_info = {
 
 
 class JKLAddon_Prefs(AddonPreferences):
-    bl_idname = __name__
+    bl_idname = basename(dirname(__file__))
 
     jkdf_path: StringProperty(
         name="DF:JK Resource dir",

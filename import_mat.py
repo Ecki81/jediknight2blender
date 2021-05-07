@@ -3,6 +3,7 @@ from . import jk_flags
 import numpy as np
 import bpy
 from pathlib import Path
+from os.path import basename, dirname
 
 
 class Mat:
@@ -132,7 +133,8 @@ class Mat:
 
             # save image temporarily
 
-            prefs = bpy.context.preferences.addons["import_jkl"].preferences
+            this_addon = basename(dirname(__file__))
+            prefs = bpy.context.preferences.addons[this_addon].preferences
             temp_path = Path(prefs.temp_folder)
             if temp_path != "":
                 joined_path = temp_path.joinpath(self.name + ".png")

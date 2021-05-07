@@ -3,6 +3,7 @@ import bpy, bmesh
 from math import *
 from .import_gob import Gob
 from .import_mat import Mat
+from os.path import basename, dirname
 
 class Thing:
 
@@ -102,7 +103,8 @@ class Thing:
             i+=1
 
         if self.import_textures:
-            prefs = bpy.context.preferences.addons["import_jkl"].preferences
+            this_addon = basename(dirname(__file__))
+            prefs = bpy.context.preferences.addons[this_addon].preferences
             gob = Gob(prefs.jkdf_path + "\Res2.gob")
             ungobed_palette = gob.ungob("01narsh.cmp")
             for texture in matList:
