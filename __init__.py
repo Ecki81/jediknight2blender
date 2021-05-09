@@ -221,11 +221,11 @@ class GOB_UL_Dir_List(UIList):
                 split = layout.split(factor=0.05*item.indent)
                 split_indent = split.row()
                 split_dir = split.row()
-                split_dir.label(text=item.name, icon='FILE_FOLDER')
+                split_dir.label(text=item.name, icon="FILE_FOLDER")
             else:
-                layout.label(text=item.name, icon='FILE_FOLDER')
+                layout.label(text=item.name, icon="FILE_FOLDER")
         elif self.layout_type in {'GRID'}:
-            layout.label(text="", icon='FILE_FOLDER')
+            layout.label(text="", icon="FILE_FOLDER")
 
 
 gob = None
@@ -403,7 +403,7 @@ class POPUP_OT_gob_browser(Operator):
 
         layout = self.layout
 
-        layout.label(text=self.filepath, icon='FILE_ARCHIVE')
+        layout.label(text=self.filepath, icon="OUTLINER")
 
         split_files = layout.split(factor=0.25)
 
