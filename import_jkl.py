@@ -54,14 +54,22 @@ class Level:
         gob_path = pathlib.Path('')
 
         parent = 0
+        jk_paths = [
+            "Star Wars Jedi Knight - Dark Forces 2",                # GOG Path
+            "Star Wars Jedi Knight"                                 # steam Path
+            ]
+        mots_paths = [
+            "Star Wars Jedi Knight - Mysteries of the Sith",        # GOG Path
+            "Jedi Knight Mysteries of the Sith"                     # steam Path
+            ]
 
         motsflag = True
         for folder in path.parts[::-1]:
-            if folder == "Star Wars Jedi Knight - Dark Forces 2":
+            if folder in jk_paths:
                 gob_path = path.parents[parent-1].joinpath('Resource')
                 motsflag = False
                 break
-            if folder == "Star Wars Jedi Knight - Mysteries of the Sith":
+            if folder in mots_paths:
                 gob_path = path.parents[parent-1].joinpath('Resource')
                 motsflag = True
                 break
