@@ -7,7 +7,7 @@ from os.path import basename, dirname
 
 
 class Mat:
-    def __init__(self, mat, pal, alpha, name, shader, emission, flag):
+    def __init__(self, mat, pal, alpha, name, shader, emission, faceflags):
         '''
         initializes a material, takes material file name
         and palette file name (currently unused)
@@ -20,7 +20,7 @@ class Mat:
         self.anim = False
         self.shader = shader
         self.emission = emission
-        self.flag = flag
+        self.flags = faceflags
 
     def __str__(self):
         print(self.mat, self.pal)
@@ -154,10 +154,15 @@ class Mat:
             mat = bpy.data.materials.new(name=self.name)
             mat.use_nodes = True
 
-            if self.alpha:
+            double_sided = (self.flags & 0x01) != 0
+            alpha_blend  = (self.flags & 0x02) != 0
+            if self.alpha or not double_sided:
                 mat.use_backface_culling = True
             else:
                 mat.use_backface_culling = False
+
+            if alpha_blend:
+                mat.blend_method = 'BLEND'
 
             bsdf = mat.node_tree.nodes["Principled BSDF"]
 
@@ -219,7 +224,7 @@ class Mat:
 
                 texImage.image = image
                 texImage.location = -600, 250
-                
+
                 mat.node_tree.links.new(output.inputs['Surface'], mixColor.outputs['Color'])
                 mat.node_tree.links.new(mixColor.inputs['Color1'], texImage.outputs['Color'])
                 mat.node_tree.links.new(mixColor.inputs['Color2'], vertexColor.outputs['Color'])
