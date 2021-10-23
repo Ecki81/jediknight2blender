@@ -28,9 +28,9 @@ class Level:
 
     def open_jkl(self, jkl_file):
         f = open(jkl_file, 'r')
-        self.lines=f.readlines()  # store the entire file in a variable 
+        self.lines=f.readlines()  # store the entire file in a variable
         f.close()
-        
+
 
     def open_from_gob(self, ungobed_file):
         ungobed_string = ungobed_file.decode("ISO-8859-1")
@@ -42,11 +42,11 @@ class Level:
         '''reads jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
         print("reading jkl data file...")
         # f = open(self.path, 'r')
-        # lines=f.readlines()  # store the entire file in a variable 
+        # lines=f.readlines()  # store the entire file in a variable
         # f.close()
 
         lines = self.lines
-        
+
         levelpath = re.split("\\\\", self.path)
         name = levelpath[-1].replace(".jkl", "")
 
@@ -182,7 +182,7 @@ class Level:
         sectors_pos_array = []
         # [[NUM, STARTPOS, ENDPOS], [NUM, STARTPOS, ENDPOS]...]
 
-        
+
 
 
         i = 0
@@ -310,7 +310,7 @@ class Level:
             # if adjoin + material, then probably transparent!
 
             material_indices.append(matId)
-            
+
             if adjoin > -1 and matId > -1:
                 alpha_mats_ids.append(matId)
                 alpha_mats_ids = sorted(set(alpha_mats_ids))
@@ -319,7 +319,7 @@ class Level:
 
             while j < nvert:
                 v_index  = re.split(",",surfLine[j+10])
-                surf_vertices.append(int(v_index[0]))                       
+                surf_vertices.append(int(v_index[0]))
                 uv_index_list.append(int(v_index[1]))
                 j+=1
             surf_list.append(surf_vertices)
@@ -359,19 +359,17 @@ class Level:
         # read in materials ################################################
         # TODO find better ways to terminate at end of material list
 
-        i=0
         mat_line = ""
         mat_list = []
         mat_tiling_list = []
-        while i < 1000:                                     # only allows for 1000 mat files
-            i+=1
-            if motsflag:
-                mat_line = re.split("\s+", lines[i + materials_section[0]],)
-            else:
-                mat_line = re.split("\s+", lines[i + materials_section[0] + 1],)
+        for i in range(1, 1000): # only allows for 1000 mat files
+            mat_line = lines[i + materials_section[0] + (1 if not motsflag else 0)]
+            if re.match(r'(#|//).*', mat_line) or len(mat_line) < 3:
+                # skip comment lines and empty lines
+                continue
+            mat_line = re.split("\s+", mat_line)
             mat_list.append(mat_line[1].lower())
             if mat_line[0] != "end":
-                pass
                 mat_tiling_tuple = (float(mat_line[2]), float(mat_line[3]))
                 mat_tiling_list.append(mat_tiling_tuple)
             else:
@@ -379,7 +377,7 @@ class Level:
             if mat_line[0] == "end":
                 break
 
-        
+
         # get a material name list, for object application
 
         mat_name_list = []                                  # every material in jkl w/o file extension *.mat
@@ -392,7 +390,7 @@ class Level:
         for position in material_list:
             level_materials.append(mat_name_list[int(position)])
         for position in alpha_mats_ids:
-            alpha_mats[mat_name_list[int(position)] + ".mat"] = "alpha"
+            alpha_mats[mat_name_list[int(position)]] = "alpha"
 
         # print(alpha_mats)
 
@@ -405,7 +403,7 @@ class Level:
             bsdf = mat.node_tree.nodes["Principled BSDF"]
             mat.node_tree.nodes.remove(bsdf)
             output = mat.node_tree.nodes["Material Output"]
-            transpNode = mat.node_tree.nodes.new('ShaderNodeBsdfTransparent')   
+            transpNode = mat.node_tree.nodes.new('ShaderNodeBsdfTransparent')
             transpNode.location = -400,250
             mat.node_tree.links.new(output.inputs['Surface'], transpNode.outputs['BSDF'])
             mat.blend_method = 'CLIP'
@@ -420,10 +418,10 @@ class Level:
             else:
                 gob = Gob(gob_path.joinpath("Res2.gob"))
             print("assigning GOB")
-  
+
 
         # call material loading class ###########################################
-        
+
 
         # select_shader
         surfflag = None
@@ -444,7 +442,7 @@ class Level:
                     print(material, "already loaded")
                 else:
                     try:
-                        mat = Mat(gob.ungob(material), colormap, alpha, material, self.select_shader, self.importEmission, surfflag)
+                        mat = Mat(gob.ungob(material), colormap, alpha, material, self.select_shader, self.importEmission, faceflag)
                         mat.import_Mat()
                     except:
                         placeholder_mat(material, (1.0,0.0,1.0,1))
@@ -461,17 +459,17 @@ class Level:
         # material_name = "jkl_sky"
         # bpy.ops.wm.append(filename=material_name, directory=material_path)
 
-        
-            
+
+
         # read in things option       #########################################
 
         if self.importThings:
-            
+
             # read in templates ################################################
             #   TODO: MotS re                                                  #
             #   x, y, z, pitch, yaw and roll can also be single digits (0)     #
             #   instead of a number noted as float (0.0000000)
-            
+
             #                          num   template  name      x              y             z             pitch         yaw           roll         sector            thingflag
             things_list = []
             thingsEx = re.compile("(\d+)\:\s(\S+)\s+(\S+)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(-?\d*\.?\d*)\s+(\d+)")
@@ -523,11 +521,11 @@ class Level:
                         thing.import_Thing()
                 except:
                     pass
-            
+
         else:
             print("thing parser skipped")
 
-        
+
 
 
         # create the mesh ##################################################
@@ -541,10 +539,11 @@ class Level:
             # Add materials to meshes
             for material in level_materials:
                 try:
-                    ob.data.materials.append(bpy.data.materials[material])
+                    mat = bpy.data.materials[material]
+                    ob.data.materials.append(mat)
                 except:
                     print("couldn't append " + material + " to mesh")
-            
+
             ob.data.materials.append(bpy.data.materials['__portal'])            # portal material at [-1] in material_index
 
             # Link object to scene
@@ -552,7 +551,7 @@ class Level:
             scene.collection.objects.link(ob)
             me.from_pydata(verts, [], faces)
             # me.validate()         # should be validated, currently UV index out of range error
-            
+
             # add uv map
             me.uv_layers.new(name='UVMap')
             uvMap = me.uv_layers['UVMap']
@@ -569,20 +568,20 @@ class Level:
 
                 if material_indices[isrf] != -1:                                # material numbers from world surfaces (188, 189, 190, -1)
                     material_name = mat_name_list[(material_indices[isrf])]     # 189 -> '07fst1a' (specific material name)
-                    for index, material in enumerate(me.materials):             # 
+                    for index, material in enumerate(me.materials):             #
                         if material_name in bpy.data.materials:                 # check if material exists
                             if material.name == material_name:
                                 polygon.material_index = index
                         else:
-                            polygon.material_index = len(me.materials) 
+                            polygon.material_index = len(me.materials)
 
                     if material_name in bpy.data.images:
                         if bpy.data.images[material_name].size[0] != 0:
                             texture_size = bpy.data.images[material_name].size
-                
+
                 else:
                     polygon.material_index = len(me.materials)-1                           # apply last material in material_index (__portal) to portals
-                
+
                 tiling=mat_tiling_list[material_indices[isrf]]
 
 
@@ -608,7 +607,7 @@ class Level:
                             color = (r, g, b, 1.0)
                         vcol.data[polygon.loop_indices[jsrf]].color = color
 
-            
+
             #  #Delete Adjoin surfaces
             # if self.importMats:
             #     for port_surface in surf_list:
@@ -622,5 +621,5 @@ class Level:
         ######################################################################
 
         create_Level(vert_array, surf_list)
-          
+
         return {'FINISHED'}
