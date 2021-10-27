@@ -37,7 +37,7 @@ bl_info = {
     "description": "Load GOB/GOO archives from Jedi Knight: "
     "Dark Forces II / Mysteries of the Sith (.gob/.goo)",
     "blender": (2, 81, 0),
-    "version": (0, 9, 0),
+    "version": (0, 9, 1),
     "location": "File > Import > JK/MotS Archive (.gob/.goo)",
     "wiki_url":
     "https://github.com/Ecki81/jediknight2blender/blob/master/README.md",
@@ -319,6 +319,22 @@ class POPUP_OT_gob_browser(Operator):
         default=False
     )
 
+    manual_source_override: BoolProperty(
+        name="Manual Source Game Override",
+        description="If source game cannot be identified, select source game manually",
+        default=False
+    )
+
+    source_mots: EnumProperty(
+        name="Source game",
+        description="Needs to be selected for 3DO assets",
+        items=(
+            ("DFJK", "DF:JK 3DO", ""),
+            ("MOTS", "MotS 3DO", "")
+        ),
+        default="DFJK"
+    )
+
     is_mots: EnumProperty(
         name="Source game",
         description="Needs to be selected for 3DO assets",
@@ -450,6 +466,9 @@ class POPUP_OT_gob_browser(Operator):
         box_jkl.prop(self, "import_intensities")
         box_jkl.prop(self, "import_sector_info")
         box_jkl.prop(self, "import_scale")
+        box_jkl.prop(self, "manual_source_override")
+        if self.manual_source_override:
+            box_jkl.prop(self, "source_mots")
 
         box_thing.prop(self, property="is_mots")
 
@@ -515,7 +534,8 @@ class POPUP_OT_gob_browser(Operator):
                 self.import_alpha,
                 self.import_scale,
                 self.select_shader,
-                self.import_sector_info
+                self.import_sector_info,
+                self.source_mots
                 )
             level.open_from_gob(ungobed_file)
             level.import_Level()

@@ -1,7 +1,6 @@
 import re
 import bpy
-import mathutils
-import os
+from os.path import basename, dirname
 from struct import unpack
 from .import_3do import Thing
 from .import_mat import Mat
@@ -11,7 +10,7 @@ import pathlib
 
 class Level:
 
-    def __init__(self, path, importThings, importMats, importIntensities, importEmission, importAlpha, scale, select_shader, import_sector_info):
+    def __init__(self, path, importThings, importMats, importIntensities, importEmission, importAlpha, scale, select_shader, import_sector_info, source):
         '''initialize jkl with diverse import flags'''
         self.lines = None
         self.importThings = importThings
@@ -19,11 +18,12 @@ class Level:
         self.importIntensities = importIntensities
         self.importEmission = importEmission
         self.importAlpha = importAlpha
-        self.scale = scale
+        self.scale = scale * 10.0                        # blender units factor
         self.select_shader = select_shader
         self.import_sector_info = import_sector_info
         self.path = path
         self.name = ""
+        self.source = source
 
 
     def open_jkl(self, jkl_file):
@@ -53,29 +53,44 @@ class Level:
         path = pathlib.Path(self.path)
         gob_path = pathlib.Path('')
 
+        this_addon = basename(dirname(__file__))
+        prefs = bpy.context.preferences.addons[this_addon].preferences
+        prefs_dir_jkdf = pathlib.Path(prefs.jkdf_path).parts[-1]
+        prefs_dir_mots = pathlib.Path(prefs.jkdf_path).parts[-1]
+
+        # check if gob is in one of the following parent directories
+        # to determine the base game
+
         parent = 0
         jk_paths = [
-            "Star Wars Jedi Knight - Dark Forces 2",                # GOG Path
-            "Star Wars Jedi Knight"                                 # steam Path
+            "Star Wars Jedi Knight - Dark Forces 2",                # GOG Dir
+            "Star Wars Jedi Knight",                                # steam Dir
+            prefs_dir_jkdf                                          # custom Dir in Prefs
             ]
         mots_paths = [
-            "Star Wars Jedi Knight - Mysteries of the Sith",        # GOG Path
-            "Jedi Knight Mysteries of the Sith"                     # steam Path
+            "Star Wars Jedi Knight - Mysteries of the Sith",        # GOG Dir
+            "Jedi Knight Mysteries of the Sith",                    # steam Dir
+            prefs_dir_mots                                          # custom Dir in Prefs
             ]
 
-        motsflag = True
+        motsflag = False
         for folder in path.parts[::-1]:
             if folder in jk_paths:
                 gob_path = path.parents[parent-1].joinpath('Resource')
                 motsflag = False
                 break
-            if folder in mots_paths:
+            elif folder in mots_paths:
                 gob_path = path.parents[parent-1].joinpath('Resource')
                 motsflag = True
                 break
+            else:
+                if self.source == "DFJK":
+                    gob_path = pathlib.Path(prefs.jkdf_path).joinpath('Resource')
+                    motsflag = False
+                elif self.source == "MOTS":
+                    gob_path = pathlib.Path(prefs.mots_path).joinpath('Resource')
+                    motsflag = True
             parent += 1
-
-        self.scale = self.scale * 10.0  # factor for real world scale in blender
 
         # get required SECTION positions in jkl ############################
 
