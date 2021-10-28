@@ -119,6 +119,22 @@ class ImportGOBfile(Operator):
         return {'FINISHED'}
 
 
+class ImportException(Operator):
+    bl_idname = "report.exception"
+    bl_label = "Import Exception Output"
+    bl_options = {'INTERNAL'}
+
+    report_message: StringProperty(
+        name="report message",
+        default=""
+    )
+
+    def execute(self, context):
+        # self.report({'INFO'}, self.report_message + " not found. Check add-on preferences!")
+        self.report({'INFO'}, "Level imported")
+        return {'FINISHED'}
+
+
 class File_Item(PropertyGroup):
     '''Repesents the file items in GOB file'''
 
@@ -610,6 +626,7 @@ def register():
 
     bpy.utils.register_class(JKLAddon_Prefs)
     bpy.utils.register_class(ImportGOBfile)
+    bpy.utils.register_class(ImportException)
     bpy.utils.register_class(File_Item)
     bpy.utils.register_class(Dir_Item)
     bpy.utils.register_class(POPUP_OT_gob_browser)
@@ -622,6 +639,7 @@ def unregister():
 
     bpy.utils.unregister_class(JKLAddon_Prefs)
     bpy.utils.unregister_class(ImportGOBfile)
+    bpy.utils.unregister_class(ImportException)
     bpy.utils.unregister_class(File_Item)
     bpy.utils.unregister_class(Dir_Item)
     bpy.utils.unregister_class(POPUP_OT_gob_browser)

@@ -1,9 +1,9 @@
 import re
-import bpy, bmesh
+import bpy
 from math import *
+from os.path import basename, dirname
 from .import_gob import Gob
 from .import_mat import Mat
-from os.path import basename, dirname
 
 class Thing:
 

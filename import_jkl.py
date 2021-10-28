@@ -1,12 +1,12 @@
 import re
 import bpy
+import pathlib
 from os.path import basename, dirname
-from struct import unpack
 from .import_3do import Thing
 from .import_mat import Mat
 from .import_gob import Gob
-from . import jk_flags
-import pathlib
+from . import jk_parse
+
 
 class Level:
 
@@ -40,10 +40,6 @@ class Level:
 
     def import_Level(self):
         '''reads jkl, constructs 3d level mesh, fills with 3do objects and applies materials'''
-        print("reading jkl data file...")
-        # f = open(self.path, 'r')
-        # lines=f.readlines()  # store the entire file in a variable
-        # f.close()
 
         lines = self.lines
 
@@ -84,6 +80,7 @@ class Level:
                 motsflag = True
                 break
             else:
+                # if base game not found take manual override parameter
                 if self.source == "DFJK":
                     gob_path = pathlib.Path(prefs.jkdf_path).joinpath('Resource')
                     motsflag = False
@@ -92,44 +89,30 @@ class Level:
                     motsflag = True
             parent += 1
 
-        # get required SECTION positions in jkl ############################
+        # # variable_section = [line position, variable count]
 
-        world_materials_regex = re.compile(r"World materials\s(\d+)")
-        world_colormaps_regex = re.compile(r"World Colormaps\s(\d+)")
-        world_vertices_regex = re.compile(r"World vertices\s(\d+)")
-        world_uvs_regex = re.compile(r"World texture vertices\s(\d+)")
-        world_adjoins_regex = re.compile(r"World adjoins\s(\d+)")
-        world_surfaces_regex = re.compile(r"World surfaces\s(\d+)")
-        world_sectors_regex = re.compile(r"World sectors\s(\d+)")
-        world_models_regex = re.compile(r"World models\s(\d+)")
-        world_templates_regex = re.compile(r"World templates\s(\d+)")
-        world_things_regex = re.compile(r"World things\s(\d+)")
-
-
-        # variable_section = [line position, variable count]
-
-        materials_section = [0,0]
-        colormaps_section = [0,0]
-        vertices_section = [0,0]
-        uvs_section = [0,0]
-        adjoins_section = [0,0]
-        surfaces_section = [0,0]
-        sectors_section = [0,0]
-        models_section = [0,0]
-        templates_section = [0,0]
-        things_section = [0,0]
+        materials_section = [0, 0]
+        colormaps_section = [0, 0]
+        vertices_section = [0, 0]
+        uvs_section = [0, 0]
+        adjoins_section = [0, 0]
+        surfaces_section = [0, 0]
+        sectors_section = [0, 0]
+        models_section = [0, 0]
+        templates_section = [0, 0]
+        things_section = [0, 0]
 
         for pos, line in enumerate(lines):
-            match_materials_section = world_materials_regex.search(line)
-            match_colormaps_section = world_colormaps_regex.search(line)
-            match_vertices_section = world_vertices_regex.search(line)
-            match_uvs_section = world_uvs_regex.search(line)
-            match_adjoins_section = world_adjoins_regex.search(line)
-            match_surfaces_section = world_surfaces_regex.search(line)
-            match_sectors_section = world_sectors_regex.search(line)
-            match_models_section = world_models_regex.search(line)
-            match_templates_section = world_templates_regex.search(line)
-            match_things_section = world_things_regex.search(line)
+            match_materials_section = jk_parse.WORLD_MATERIALS_RE.search(line)
+            match_colormaps_section = jk_parse.WORLD_COLORMAPS_RE.search(line)
+            match_vertices_section = jk_parse.WORLD_VERTICES_RE.search(line)
+            match_uvs_section = jk_parse.WORLD_UVS_RE.search(line)
+            match_adjoins_section = jk_parse.WORLD_ADJOINS_RE.search(line)
+            match_surfaces_section = jk_parse.WORLD_SURFACES_RE.search(line)
+            match_sectors_section = jk_parse.WORLD_SECTORS_RE.search(line)
+            match_models_section = jk_parse.WORLD_MODELS_RE.search(line)
+            match_templates_section = jk_parse.WORLD_TEMPLATES_RE.search(line)
+            match_things_section = jk_parse.WORLD_THINGS_RE.search(line)
             if match_materials_section:
                 materials_section = [pos+1 , int(match_materials_section.group(1))]
             elif match_colormaps_section:
@@ -184,35 +167,23 @@ class Level:
 
         # read in sectors #################################################
 
-        sector_regex = re.compile(r"SECTOR\s(\d+)")
-        sector_ambient_regex = re.compile(r"AMBIENT LIGHT\s(-?\d*\.?\d*)")
-        sector_extra_regex = re.compile(r"EXTRA LIGHT\s(-?\d*\.?\d*)")
-        sector_tint_regex = re.compile(r"TINT\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
-        sector_boundbox_regex = re.compile(r"BOUNDBOX\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
-        sector_center_regex = re.compile(r"CENTER\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)\s(-?\d*\.?\d*)")
-        sector_radius_regex = re.compile(r"RADIUS\s(-?\d*\.?\d*)")
-        sector_surfaces_regex = re.compile(r"SURFACES\s(\d+)\s(\d+)")
-
         sector_pos = []
         sectors_pos_array = []
         # [[NUM, STARTPOS, ENDPOS], [NUM, STARTPOS, ENDPOS]...]
-
-
-
 
         i = 0
         while i < sectors_section[1]:
             sector_line_count = 0
             sectors_dict = {}
             for line in lines[sectors_section[0]:models_section[0]]:
-                match_sector = sector_regex.search(line)
-                match_ambient = sector_ambient_regex.search(line)
-                match_extra = sector_extra_regex.search(line)
-                match_tint = sector_tint_regex.search(line)
-                match_boundbox = sector_boundbox_regex.search(line)
-                match_center = sector_center_regex.search(line)
-                match_radius = sector_radius_regex.search(line)
-                match_surfaces = sector_surfaces_regex.search(line)
+                match_sector = jk_parse.SECTOR_RE.search(line)
+                match_ambient = jk_parse.SECTOR_AMBIENT_RE.search(line)
+                match_extra = jk_parse.SECTOR_EXTRA_RE.search(line)
+                match_tint = jk_parse.SECTOR_TINT_RE.search(line)
+                match_boundbox = jk_parse.SECTOR_BOUNDBOX_RE.search(line)
+                match_center = jk_parse.SECTOR_CENTER_RE.search(line)
+                match_radius = jk_parse.SECTOR_RADIUS_RE.search(line)
+                match_surfaces = jk_parse.SECTOR_SURFACES_RE.search(line)
                 sector_line_count += 1
 
                 if match_sector:
@@ -429,10 +400,21 @@ class Level:
 
         if self.importMats or self.importThings:
             if motsflag:
-                gob = Gob(gob_path.joinpath("JKMRES.GOO"))
+                try:
+                    gob = Gob(gob_path.joinpath("JKMRES.GOO"))
+                    print("assigning JKMRES.GOO")
+                except FileNotFoundError:
+                    bpy.ops.report.exception(report_message="JKMRES.GOO")
+                    self.importMats = False
+                    self.importThings = False
             else:
-                gob = Gob(gob_path.joinpath("Res2.gob"))
-            print("assigning GOB")
+                try:
+                    gob = Gob(gob_path.joinpath("Res2.gob"))
+                    print("assigning Res2.gob")
+                except FileNotFoundError:
+                    bpy.ops.report.exception(report_message="Res2.gob")
+                    self.importMats = False
+                    self.importThings = False
 
 
         # call material loading class ###########################################
